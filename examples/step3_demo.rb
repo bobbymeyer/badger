@@ -51,6 +51,8 @@ badges.each do |container, band_region, interior_region|
   # the ellipse reads over its top half; the shield's baseline starts at its
   # top-left corner, so its top edge is the first straight stretch
   start, sweep = container.name == "shield" ? [0, baseline.corners[1] || 268] : [baseline.length / 2, baseline.length / 2]
+  # a preview of step 4's fill policy: shrink the size until the run fits the sweep
+  run = font.shape(run.text, size: size * sweep / run.width * 0.92) if run.width > sweep
   top = Badger::Follow.new(baseline, run, start: start, sweep: sweep, align: :justify)
   svg << %(<path d="#{top.path.to_d}" fill="#1d2a44"/>)
 
