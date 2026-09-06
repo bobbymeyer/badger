@@ -238,7 +238,7 @@ Tests shape against `test/fixtures/badger-test.ttf`, a 1 KB font with exact know
 
 ## Next
 
-- The acceptance test proper: Stockholm Stadion 1912 against the reference, once the reference and its font are to hand. The seed is the mechanism, not the result.
+- The acceptance test proper. `test/acceptance/stockholm_test.rb` holds the Stockholm document to everything the handoff says it must exercise: the elliptical spine at equal arc length, the annulus, cap height equal to the band width, the polar-anchored pair, the invisible setting line. Whether the result matches the reference image is the half only an eye can judge, once the reference and its font are in the repository.
 - Corners still break spines: a run across a concave vertex tears, as the handoff says. `Follow` flags the placement; filleting the spine or breaking the run there is not built yet.
 - Each boolean is a sidecar process today. If badges get interactive, a long-lived worker is a change inside the gem, not the chassis.
 - The polyline offset in the geometry layer is enough for region derivation on convex-ish containers; the effects layer offsets through Skia.
