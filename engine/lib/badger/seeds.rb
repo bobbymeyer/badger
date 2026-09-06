@@ -46,7 +46,7 @@ module Badger
           type:
             - { mode: follow, text: STOCKHOLM STADION, font: #{font}, region: ring, inset: 7, sweep: top, align: justify }
             - { mode: follow, text: "1912", font: #{font}, region: ring, from: outer, inset: 7, sweep: bottom, tracking: 12 }
-            - { mode: fit, text: OLYMPIA, font: #{font}, region: field, fit: chord_at_y, at: 0, inset: 24, edge: narrowest }
+            - { mode: fit, text: OLYMPIA, font: #{font}, region: field, fit: chord_at_y, at: 0, inset: 64, edge: narrowest }
             - { mode: fixed, text: EST., font: #{font}, size: 14, at: { polar: { angle: 180, radius: 150 } }, align: left }
             - { mode: fixed, text: SWE, font: #{font}, size: 14, at: { polar: { angle: 0, radius: 150 } }, align: right }
         YAML
