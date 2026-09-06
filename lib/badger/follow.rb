@@ -1,14 +1,14 @@
 # frozen_string_literal: true
 
 module Badger
-  # Follow mode without a font: distributes a run of advances (glyph widths,
-  # in the spine's units) along a spine by arc length, with uniform tracking
-  # between them. Each placement carries the point and tangent at the
-  # glyph's advance centre, so the glyph is rotated about its middle and
-  # straddles the curve evenly.
+  # Follow mode: distributes a run of advances (glyph widths, in the spine's
+  # units) along a spine by arc length, with uniform tracking between them.
+  # Each placement carries the point and tangent at the glyph's advance
+  # centre, so the glyph is rotated about its middle and straddles the curve
+  # evenly.
   #
-  # Shaping (HarfBuzz) supplies the advances once the sidecar/FFI decision
-  # is made; nothing here changes when it does.
+  # Given a shaped Run instead of bare advances, `path` returns the glyph
+  # outlines transformed onto the spine.
   class Follow
     ALIGNMENTS = %i[start center end justify].freeze
 
@@ -18,26 +18,32 @@ module Badger
       def degrees = angle * 180.0 / Math::PI
       def straddles_corner? = straddles_corner
 
-      # SVG transform that maps a glyph drawn with its origin at (0, 0) and
-      # its advance along +x onto the spine, centred on its advance.
+      # Maps a glyph drawn with its origin at (0, 0) and its advance along +x
+      # onto the spine, centred on its advance.
+      def affine
+        Geometry::Affine.translate(point.x, point.y) * Geometry::Affine.rotate(angle) *
+          Geometry::Affine.translate(-advance / 2.0, 0)
+      end
+
       def svg_transform
         f = Geometry.method(:fmt)
         "translate(#{f.(point.x)} #{f.(point.y)}) rotate(#{f.(degrees)}) translate(#{f.(-advance / 2.0)} 0)"
       end
     end
 
-    attr_reader :spine, :advances, :tracking, :start, :sweep, :align
+    attr_reader :spine, :run, :advances, :tracking, :start, :sweep, :align
 
     # start:  arc length where the sweep begins
     # sweep:  arc length available to the run; defaults to the whole closed
     #         spine, or the remainder of an open one
     # align:  :start, :center, :end place the run within the sweep at the
     #         given tracking; :justify solves tracking so the run fills it
-    def initialize(spine, advances, tracking: 0.0, start: 0.0, sweep: nil, align: :start)
+    def initialize(spine, advances_or_run, tracking: 0.0, start: 0.0, sweep: nil, align: :start)
       raise ArgumentError, "align must be one of #{ALIGNMENTS.join(', ')}" unless ALIGNMENTS.include?(align)
 
       @spine = spine
-      @advances = advances.map(&:to_f).freeze
+      @run = advances_or_run if advances_or_run.respond_to?(:glyphs)
+      @advances = (run ? run.advances : advances_or_run).map(&:to_f).freeze
       @start = start.to_f
       @sweep = (sweep || (spine.closed? ? spine.length : spine.length - @start)).to_f
       @align = align
@@ -67,6 +73,16 @@ module Badger
       when :center then start + (sweep - run_length) / 2.0
       when :end then start + sweep - run_length
       end
+    end
+
+    # Glyph outlines on the spine, one subpath per contour. Needs a Run.
+    def path
+      raise Badger::Error, "Follow#path needs a shaped Run, not bare advances" unless run
+
+      subpaths = run.glyphs.zip(placements).flat_map do |glyph, placement|
+        glyph.ink? ? glyph.path.transform(placement.affine).subpaths : []
+      end
+      Geometry::Path.new(subpaths)
     end
 
     def placements

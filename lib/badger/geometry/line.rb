@@ -18,6 +18,7 @@ module Badger
       def table_resolution = 1
       def flatten(_tolerance = nil) = [p0, p1]
       def reversed = Line.new(p1, p0)
+      def transform(affine) = Line.new(affine.apply(p0), affine.apply(p1))
 
       def to_d = "L #{Geometry.fmt(p1.x)} #{Geometry.fmt(p1.y)}"
       def ==(other) = other.is_a?(Line) && p0 == other.p0 && p1 == other.p1

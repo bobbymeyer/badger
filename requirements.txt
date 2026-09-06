@@ -1,0 +1,6 @@
+# Python packages the Badger sidecar needs. Install into the interpreter
+# named by BADGER_PYTHON (default: python3), e.g. in the chassis Dockerfile:
+#   pip install -r $(bundle show badger)/requirements.txt
+fonttools>=4.50
+uharfbuzz>=0.40
+skia-pathops>=0.8

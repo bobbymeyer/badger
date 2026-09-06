@@ -7,5 +7,7 @@ module Badger
 end
 
 require_relative "badger/geometry"
+require_relative "badger/sidecar"
+require_relative "badger/font"
 require_relative "badger/tracking"
 require_relative "badger/follow"

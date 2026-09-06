@@ -10,6 +10,7 @@ module Badger
         def spine(**options) = Spine.new(segments, closed: closed, **options)
         def start_point = segments.first.start_point
         def closed? = closed
+        def transform(affine) = Subpath.new(segments: segments.map { |s| s.transform(affine) }, closed: closed)
 
         # A closed subpath's final straight segment back to the start is
         # implied by Z, so it is not written out.
@@ -58,6 +59,7 @@ module Badger
       def empty? = subpaths.empty?
       def to_d = subpaths.map(&:to_d).join(" ")
       def +(other) = Path.new(subpaths + other.subpaths)
+      def transform(affine) = Path.new(subpaths.map { |s| s.transform(affine) })
 
       # [min, max] corners of the flattened geometry.
       def bounds(tolerance: 0.1)

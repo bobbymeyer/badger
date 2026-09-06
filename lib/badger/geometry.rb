@@ -16,6 +16,7 @@ module Badger
 end
 
 require_relative "geometry/point"
+require_relative "geometry/affine"
 require_relative "geometry/quadrature"
 require_relative "geometry/arc_length_table"
 require_relative "geometry/piece"

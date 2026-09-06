@@ -92,3 +92,48 @@ class FollowTest < Minitest::Test
     assert_raises(ArgumentError) { Badger::Follow.new(line, [1], align: :middle) }
   end
 end
+
+class FollowWithRunTest < Minitest::Test
+  include Badger::Geometry
+
+  FIXTURE = File.expand_path("fixtures/badger-test.ttf", __dir__)
+
+  def test_outlines_land_on_the_spine_centred_on_each_advance
+    run = Badger::Font.new(FIXTURE).shape("H", size: 100)
+    line = Path.polyline([pt(0, 0), pt(200, 0)]).spine
+    follow = Badger::Follow.new(line, run, start: 50)
+    min, max = follow.path.bounds
+    assert_point pt(50, -70), min
+    assert_point pt(110, 0), max
+  end
+
+  def test_outlines_rotate_with_the_tangent
+    run = Badger::Font.new(FIXTURE).shape("H", size: 100)
+    circle = Ellipse.circle(200).spine
+    # forward spine: the bottom reads right to left, glyph tops point outward
+    follow = Badger::Follow.new(circle, run, start: circle.length / 4 - 30) # centred on the bottom
+    min, max = follow.path.bounds
+    assert_in_delta(-30, min.x, 1e-6)
+    assert_in_delta 30, max.x, 1e-6
+    assert_in_delta 200, min.y, 1e-6
+    assert_in_delta 270, max.y, 1e-6
+    # reversed spine: reads left to right along the bottom, tops toward the centre
+    reversed = circle.reversed
+    follow = Badger::Follow.new(reversed, run, start: reversed.length * 3 / 4 - 30)
+    min, max = follow.path.bounds
+    assert_in_delta 130, min.y, 1e-6
+    assert_in_delta 200, max.y, 1e-6
+  end
+
+  def test_run_advances_drive_the_placements
+    run = Badger::Font.new(FIXTURE).shape("AV", size: 100)
+    follow = Badger::Follow.new(Path.polyline([pt(0, 0), pt(500, 0)]).spine, run)
+    assert_equal [50.0, 60.0], follow.advances
+    assert_equal 2, follow.path.subpaths.size
+  end
+
+  def test_path_without_a_run_raises
+    follow = Badger::Follow.new(Path.polyline([pt(0, 0), pt(500, 0)]).spine, [10, 20])
+    assert_raises(Badger::Error) { follow.path }
+  end
+end

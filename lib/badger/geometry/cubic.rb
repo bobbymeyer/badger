@@ -66,6 +66,7 @@ module Badger
       end
 
       def reversed = Cubic.new(p3, p2, p1, p0)
+      def transform(affine) = Cubic.new(*[p0, p1, p2, p3].map { |p| affine.apply(p) })
 
       def to_d
         "C #{[p1, p2, p3].map { |p| "#{Geometry.fmt(p.x)} #{Geometry.fmt(p.y)}" }.join(' ')}"
