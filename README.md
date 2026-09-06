@@ -161,6 +161,18 @@ art.to_container                                     # its outline as a containe
 
 The primitives are the whole set the handoff names; anything more parametric is the shape node's job. Illustration parsing is REXML, the gem's one runtime dependency. `examples/step8_demo.rb` shows the six primitives as containers, both kinds of artwork, and type following a leaf.
 
+## The acceptance tests
+
+The three reference badges live in `Badger::References` as documents in the reference images' own pixels, measured off `test/acceptance/reference/`. Each proves one thing the handoff names, and `test/acceptance/` holds it to that geometrically:
+
+| Reference | Proves | Held to |
+| --- | --- | --- |
+| Stockholm Stadion 1912 | the spine at equal arc length, the annulus, cap height equal to the band, fixed type on an invisible setting line | glyph centres the baseline's offset in from the outline; ink inside the band; sweeps between the measured angles; digits centred on the setting line |
+| Le Dive | fit to width at y | every line at its fixed height takes half the chord at its height, within a range, the I staying a bar; lines stack inside the rounded lozenge |
+| Giletti | fit to height at x | each glyph the vertical chord at its own x less the insets, one width scale for the word, the middle letter tallest, all inside the rule |
+
+`ruby examples/acceptance.rb` renders each beside its reference with a 50% overlay. Outlines overlap the references at 0.99 (Stockholm) and 0.98 (Le Dive) by pixel intersection over union; what remains visible is the stand-in faces. The same three documents are the engine's seeds.
+
 ## The document, and step 9
 
 A badge is a document. `Badger::Spec.build(doc)` turns one into the container tree, with every parameter named for what it means:
@@ -238,7 +250,7 @@ Tests shape against `test/fixtures/badger-test.ttf`, a 1 KB font with exact know
 
 ## Next
 
-- The acceptance test proper. `test/acceptance/stockholm_test.rb` holds the Stockholm document to everything the handoff says it must exercise: the elliptical spine at equal arc length, the annulus, cap height equal to the band width, the polar-anchored pair, the invisible setting line. Whether the result matches the reference image is the half only an eye can judge, once the reference and its font are in the repository.
+- The reference faces. The three references are set in stand-in system fonts (`examples/acceptance.rb` uses DejaVu); their own faces would close most of the remaining visible gap.
 - Corners still break spines: a run across a concave vertex tears, as the handoff says. `Follow` flags the placement; filleting the spine or breaking the run there is not built yet.
 - Each boolean is a sidecar process today. If badges get interactive, a long-lived worker is a change inside the gem, not the chassis.
 - The polyline offset in the geometry layer is enough for region derivation on convex-ish containers; the effects layer offsets through Skia.

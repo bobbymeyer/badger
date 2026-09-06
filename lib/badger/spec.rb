@@ -27,10 +27,10 @@ module Badger
   class Spec
     class Error < Badger::Error; end
 
-    SHAPES = %w[circle ellipse rectangle lozenge rounded_rectangle shield path].freeze
+    SHAPES = %w[circle ellipse rectangle lozenge rounded_rectangle shield superellipse path].freeze
     REGIONS = %w[rule band interior].freeze
     MODES = %w[follow fit fixed].freeze
-    FITS = %w[chord_at_y chord_at_x box].freeze
+    FITS = %w[chord_at_y chord_at_x chord_at_x_per_glyph box].freeze
     SWEEPS = %w[top bottom full].freeze
 
     def self.build(document, **options) = new(document, **options).container
@@ -88,6 +88,8 @@ module Badger
       shape = build_shape(fetch(doc, "shape", where), "#{where}.shape")
       container = Container.new(shape, visible: doc.fetch("visible", true), name: doc["name"],
                                 slot: slot_of(doc, where, :ground), tolerance: number(doc, "tolerance", where, 0.1))
+      outer = @current
+      @current = container
       regions = {}
       Array(doc["regions"]).each_with_index do |r, i|
         region = build_region(container, r, "#{where}.regions[#{i}]")
@@ -101,6 +103,8 @@ module Badger
         place(container, child, c, child_where, name: c["name"], slot: slot_of(c, child_where, :ground))
       end
       container
+    ensure
+      @current = outer
     end
 
     def build_shape(doc, where)
@@ -111,7 +115,10 @@ module Badger
       when "ellipse" then Shapes.ellipse(number(doc, "rx", where), number(doc, "ry", where),
                                          rotation: number(doc, "rotation", where, 0.0) * Math::PI / 180)
       when "rectangle" then Shapes.rectangle(number(doc, "width", where), number(doc, "height", where))
-      when "lozenge" then Shapes.lozenge(number(doc, "width", where), number(doc, "height", where))
+      when "lozenge"
+        Shapes.lozenge(number(doc, "width", where), number(doc, "height", where), radius: number(doc, "radius", where, 0.0))
+      when "superellipse"
+        Shapes.superellipse(number(doc, "width", where), number(doc, "height", where), exponent: number(doc, "exponent", where, 2.5))
       when "rounded_rectangle"
         Shapes.rounded_rectangle(number(doc, "width", where), number(doc, "height", where), radius: number(doc, "radius", where))
       when "shield"
@@ -207,11 +214,20 @@ module Badger
         [spine, number(doc, "start", where, 0.0) * spine.length, spine.length]
       when Hash
         spine = doc["reversed"] ? baseline.reversed : baseline
-        start = number(sweep, "start", "#{where}.sweep") * spine.length
-        length = number(sweep, "length", "#{where}.sweep") * spine.length
-        [spine, start, length]
+        if sweep.key?("from") || sweep.key?("to")
+          # visual degrees from the container's centroid, clockwise on screen;
+          # the run goes from `from` to `to` in the spine's direction
+          center = @current.centroid
+          from = spine.length_at_angle(number(sweep, "from", "#{where}.sweep") * Math::PI / 180, center: center)
+          to = spine.length_at_angle(number(sweep, "to", "#{where}.sweep") * Math::PI / 180, center: center)
+          [spine, from, (to - from) % spine.length]
+        else
+          start = number(sweep, "start", "#{where}.sweep") * spine.length
+          length = number(sweep, "length", "#{where}.sweep") * spine.length
+          [spine, start, length]
+        end
       else
-        error("sweep must be top, bottom, full or { start:, length: } as fractions", where)
+        error("sweep must be top, bottom, full, { start:, length: } as fractions or { from:, to: } in degrees", where)
       end
     end
 
@@ -232,21 +248,40 @@ module Badger
       slot = slot_of(doc, where, :ink)
       name = doc["name"] || run.text
 
+      stretch = doc["stretch"] && (number(doc["stretch"], "min", "#{where}.stretch")..number(doc["stretch"], "max", "#{where}.stretch"))
       if fit_kind == "box"
         axes = one_of(doc, "axes", where, %w[width height both], "width").to_sym
-        stretch = doc["stretch"] && (number(doc["stretch"], "min", "#{where}.stretch")..number(doc["stretch"], "max", "#{where}.stretch"))
         fit = Fit.new(policy: policy, axes: axes, max_size: number(doc, "max_size", where, nil), stretch: stretch)
         result = fit.to_box(run, width: number(doc, "width", where, nil), height: number(doc, "height", where, nil))
         setting = Setting.new(result.run, Geometry::Affine.scale(1.0, result.stretch))
         place(container, setting, doc, where, name: name, slot: slot)
-      else
-        fit = Fit.new(policy: policy, max_size: number(doc, "max_size", where, nil))
+      elsif fit_kind == "chord_at_x_per_glyph"
+        error("chord_at_x_per_glyph needs a stretch: { min:, max: } range", where) unless stretch
+        fit = Fit.new(policy: :fill, axes: :both, stretch: stretch)
         interior = interior_named(container, regions, doc, where)
-        options = { inset: number(doc, "inset", where, 0.0),
+        block = fit.glyphs_to_chords_at_x(run, interior, y: number(doc, "at", where, 0.0), inset: number(doc, "inset", where, 0.0),
+                                          word_inset: number(doc, "word_inset", where, 0.0), fill: number(doc, "fill", where, 1.0),
+                                          edge: one_of(doc, "edge", where, %w[center narrowest], "center").to_sym,
+                                          tracking: number(doc, "tracking", where, 0.0))
+        container.attach(block, name: name, slot: slot)
+      else
+        across = fit_kind == "chord_at_y" ? number(doc, "height", where, nil) : number(doc, "width", where, nil)
+        fit = if across
+                error("a fixed #{fit_kind == 'chord_at_y' ? 'height' : 'width'} needs a stretch: { min:, max: } range", where) unless stretch
+                Fit.new(policy: policy, axes: :both, max_size: number(doc, "max_size", where, nil), stretch: stretch)
+              else
+                Fit.new(policy: policy, max_size: number(doc, "max_size", where, nil))
+              end
+        interior = interior_named(container, regions, doc, where)
+        options = { inset: number(doc, "inset", where, 0.0), fill: number(doc, "fill", where, 1.0),
                     anchor: one_of(doc, "anchor", where, %w[center baseline], "center").to_sym,
                     edge: one_of(doc, "edge", where, %w[center narrowest], "center").to_sym }
         at = number(doc, "at", where)
-        setting = fit_kind == "chord_at_y" ? fit.to_chord_at_y(run, interior, at, **options) : fit.to_chord_at_x(run, interior, at, **options)
+        setting = if fit_kind == "chord_at_y"
+                    fit.to_chord_at_y(run, interior, at, height: across, **options)
+                  else
+                    fit.to_chord_at_x(run, interior, at, width: across, **options)
+                  end
         container.attach(setting, name: name, slot: slot)
       end
     end
