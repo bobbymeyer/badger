@@ -10,9 +10,10 @@ Gem::Specification.new do |spec|
   spec.description = "A tree of containers. Each container derives regions. Each region holds type " \
                      "(fitted, followed, or fixed) anchored by locator plus alignment. Returns SVG."
   spec.homepage = "https://github.com/bobbymeyer/badger"
+  spec.license = "MIT"
   spec.required_ruby_version = ">= 3.2"
 
-  spec.files = Dir["lib/**/*.rb", "README.md", "HANDOFF.md"]
+  spec.files = Dir["lib/**/*.rb", "README.md", "HANDOFF.md", "LICENSE"]
   spec.require_paths = ["lib"]
 
   spec.add_development_dependency "minitest", "~> 5.20"
