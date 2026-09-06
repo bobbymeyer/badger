@@ -8,10 +8,10 @@ module Badger
     class Interior < Base
       attr_reader :inside
 
-      def initialize(container, inside:, visible:, name:)
+      def initialize(container, inside:, visible:, name:, slot: :ink)
         raise ArgumentError, "inside: must be zero or negative (an inward offset)" if inside.positive?
 
-        super(container, visible: visible, name: name)
+        super(container, visible: visible, name: name, slot: slot)
         @inside = inside.to_f
       end
 

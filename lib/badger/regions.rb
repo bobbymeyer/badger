@@ -7,12 +7,13 @@ module Badger
   # per region.
   module Regions
     class Base
-      attr_reader :container, :name
+      attr_reader :container, :name, :slot
 
-      def initialize(container, visible:, name:)
+      def initialize(container, visible:, name:, slot: :ink)
         @container = container
         @visible = visible
         @name = name
+        @slot = Slot.rank(slot)
       end
 
       def visible? = @visible

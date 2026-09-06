@@ -5,12 +5,13 @@ module Badger
   # its local coordinates into the parent's. Children are containers, type
   # (a Setting or a Follow) or, later, illustration.
   class Node
-    attr_reader :child, :affine, :name
+    attr_reader :child, :affine, :name, :slot
 
-    def initialize(child, affine, name: nil)
+    def initialize(child, affine, name: nil, slot: :ink)
       @child = child
       @affine = affine
       @name = name
+      @slot = Slot.rank(slot)
     end
 
     def kind
@@ -31,5 +32,5 @@ module Badger
   end
 
   # One drawable piece of a resolved tree, in world coordinates.
-  Resolved = Data.define(:kind, :name, :path, :source, :depth)
+  Resolved = Data.define(:kind, :name, :path, :source, :depth, :slot)
 end

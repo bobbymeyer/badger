@@ -7,10 +7,10 @@ module Badger
     class Offset < Base
       attr_reader :distance, :weight
 
-      def initialize(container, distance:, weight:, visible:, name:)
+      def initialize(container, distance:, weight:, visible:, name:, slot: :ink)
         raise ArgumentError, "weight must be positive" unless weight.positive?
 
-        super(container, visible: visible, name: name)
+        super(container, visible: visible, name: name, slot: slot)
         @distance = distance.to_f
         @weight = weight.to_f
       end
