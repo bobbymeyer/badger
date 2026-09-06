@@ -61,6 +61,12 @@ module Badger
       def +(other) = Path.new(subpaths + other.subpaths)
       def transform(affine) = Path.new(subpaths.map { |s| s.transform(affine) })
 
+      # Signed-area sum of the flattened subpaths, absolute: the filled area
+      # when contours are wound consistently (outer one way, holes the other).
+      def area(tolerance: 0.1)
+        spines.sum { |s| Offset.signed_area(s.flatten(tolerance)) }.abs
+      end
+
       # [min, max] corners of the flattened geometry.
       def bounds(tolerance: 0.1)
         points = spines.flat_map { |s| s.flatten(tolerance) }

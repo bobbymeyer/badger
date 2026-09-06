@@ -16,7 +16,7 @@ module Badger
     def kind
       case child
       when Container then :container
-      when Setting, Follow then :type
+      when Setting, Follow, Block then :type
       when Geometry::Path then :illustration
       else :unknown
       end

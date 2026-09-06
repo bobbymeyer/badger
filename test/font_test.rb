@@ -83,7 +83,7 @@ class FontTest < Minitest::Test
     assert_raises(Badger::Sidecar::Unavailable) { sidecar.call({ op: "doctor" }) }
     report = sidecar.doctor
     refute report["ok"]
-    assert_equal %w[fonttools uharfbuzz], report["missing"]
+    assert_equal %w[fonttools uharfbuzz skia-pathops], report["missing"]
   end
 
   def test_doctor_reports_ok_here

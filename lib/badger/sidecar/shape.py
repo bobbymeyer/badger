@@ -10,6 +10,12 @@ Requests:
   {"op": "shape", "font": "/path/to/font.ttf", "text": "STOCKHOLM",
    "features": {"kern": true, "liga": true}, "variations": {"wght": 700},
    "direction": "ltr", "script": "Latn", "language": "en"}
+  {"op": "pathops", "operation": "union" | "difference" | "intersection" | "xor" | "expand",
+   "subject": ["M ... Z", ...], "clip": ["M ... Z", ...], "distance": 4, "join": "round"}
+
+pathops runs skia-pathops on SVG path data: booleans of subject against
+clip, or "expand", which grows the subject by a distance (stroke then
+union) for the offset stroke. Coordinates pass through unchanged.
 
 The shape response carries the font's vertical metrics, one entry per
 shaped glyph (gid, name, cluster, advance and offsets) and an outline map
@@ -23,6 +29,7 @@ import sys
 def doctor():
     report = {"python": sys.version.split()[0]}
     for module, key in (("fontTools", "fonttools"), ("uharfbuzz", "uharfbuzz"), ("pathops", "skia-pathops")):
+        # skia-pathops is required from step 6 on: booleans, knockout and the offset stroke
         try:
             mod = __import__(module)
             report[key] = getattr(mod, "version", None) or getattr(mod, "__version__", "present")
@@ -92,6 +99,62 @@ def shape(request):
     }
 
 
+def pathops_op(request):
+    import pathops
+    from fontTools.pens.svgPathPen import SVGPathPen
+    from fontTools.svgLib.path import parse_path
+
+    def build(ds):
+        path = pathops.Path()
+        pen = path.getPen()
+        for d in ds or []:
+            if d and d.strip():
+                parse_path(d, pen)
+        return path
+
+    operation = request["operation"]
+    subject = build(request.get("subject"))
+    clip = build(request.get("clip"))
+    result = pathops.Path()
+
+    if operation == "union":
+        pathops.union([subject], result.getPen())
+    elif operation == "difference":
+        pathops.difference([subject], [clip], result.getPen())
+    elif operation == "intersection":
+        pathops.intersection([subject], [clip], result.getPen())
+    elif operation == "xor":
+        pathops.xor([subject], [clip], result.getPen())
+    elif operation == "expand":
+        distance = float(request["distance"])
+        joins = {"round": pathops.LineJoin.ROUND_JOIN, "miter": pathops.LineJoin.MITER_JOIN,
+                 "bevel": pathops.LineJoin.BEVEL_JOIN}
+        join = joins[request.get("join", "round")]
+        unioned = pathops.Path()
+        pathops.union([subject], unioned.getPen())
+        if distance > 0:
+            stroked = pathops.Path()
+            stroked.addPath(unioned)
+            stroked.stroke(2 * distance, pathops.LineCap.ROUND_CAP, join, float(request.get("miter_limit", 4.0)))
+            stroked.convertConicsToQuads()
+            pathops.union([unioned, stroked], result.getPen())
+        elif distance < 0:
+            stroked = pathops.Path()
+            stroked.addPath(unioned)
+            stroked.stroke(-2 * distance, pathops.LineCap.ROUND_CAP, join, float(request.get("miter_limit", 4.0)))
+            stroked.convertConicsToQuads()
+            pathops.difference([unioned], [stroked], result.getPen())
+        else:
+            result = unioned
+    else:
+        raise ValueError(f"unknown pathops operation {operation!r}")
+
+    result.convertConicsToQuads()
+    pen = SVGPathPen(None)
+    result.draw(pen)
+    return {"path": pen.getCommands(), "area": abs(result.area), "bounds": list(result.bounds) if result.bounds else None}
+
+
 def vertical_metric(tt, glyph_set, os2_field, fallback_glyph, BoundsPen):
     os2 = tt.get("OS/2")
     value = getattr(os2, os2_field, 0) if os2 is not None else 0
@@ -114,6 +177,8 @@ def main():
             result = doctor()
         elif op == "shape":
             result = shape(request)
+        elif op == "pathops":
+            result = pathops_op(request)
         else:
             raise ValueError(f"unknown op {op!r}")
         json.dump(result, sys.stdout)
