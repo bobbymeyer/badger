@@ -1,0 +1,5 @@
+/test/dummy/tmp/
+/test/dummy/log/
+/test/dummy/storage/
+/test/dummy/db/*.sqlite3*
+Gemfile.lock

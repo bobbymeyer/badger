@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+  <title>padded star</title>
+  <defs><rect id="unused" width="1000" height="1000"/></defs>
+  <g transform="translate(100 100)">
+    <path d="M 100 0 L 130 70 L 200 70 L 145 110 L 165 180 L 100 140 L 35 180 L 55 110 L 0 70 L 70 70 Z" fill="#1d2a44"/>
+    <rect x="90" y="190" width="20" height="10" fill="#1D2A44"/>
+    <circle cx="100" cy="30" r="5" fill="none" stroke="#000"/>
+  </g>
+</svg>

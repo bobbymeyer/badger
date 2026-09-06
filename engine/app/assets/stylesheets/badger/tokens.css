@@ -1,0 +1,16 @@
+/* What this engine adds to the tokens the host has already set. The accent,
+ * the typeface, the value scale and the field count are the host's. What is
+ * here is only what a badge measures that a host could not know. Unlayered,
+ * like a host's own stylesheets, so it wins wherever the two meet. */
+
+main.grid > .page-head { --span: 6; }
+main.grid > .badge-cards,
+main.grid > .pagination,
+main.grid > .form { --span: 6; }
+main.grid > .preview-figure { --span: 3; }
+main.grid > .detail { --span: 3; }
+
+@media (max-width: 40rem) {
+  main.grid > .preview-figure,
+  main.grid > .detail { --span: 6; }
+}

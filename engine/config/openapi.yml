@@ -1,0 +1,264 @@
+# The API, described. Served at api/v1/openapi and kept beside the routes it
+# describes; test/controllers/api/v1/openapi_test.rb fails when the two
+# disagree. The wire format is pinned longhand in contract_test.rb.
+openapi: 3.1.0
+info:
+  title: Badger
+  version: "1"
+  summary: A badge generator.
+  description: |
+    Badges composed as documents — a container that derives regions, and
+    type set into them, fitted, followed or fixed — rendered in value and
+    dressed afterwards in a palette as a colorway. Read-only: badges are
+    composed in the editor, and this is for the tools that consume them.
+
+    Every request but this description carries a Bearer token issued by the
+    host application. A badge is addressed by id or by name. Fills in the SVG
+    are colour slots, `var(--badger-slot-N, <grey>)`, unresolved until a
+    consumer sets the properties or asks for a colorway with `?colorway=`.
+    `?padding=` is room around the ink in badge units.
+servers:
+  - url: /badger/api/v1
+    description: Relative to the host the engine is mounted in, at its mount path.
+security:
+  - bearer: []
+tags:
+  - name: badges
+  - name: colorways
+
+paths:
+  /openapi:
+    get:
+      operationId: openapi
+      summary: This document.
+      security: []
+      responses:
+        "200":
+          description: The OpenAPI description of this API.
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /badges:
+    get:
+      operationId: listBadges
+      tags: [badges]
+      summary: Every badge, by name.
+      responses:
+        "200":
+          description: Summaries.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BadgeSummary"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /badges/{key}:
+    parameters:
+      - $ref: "#/components/parameters/badgeKey"
+    get:
+      operationId: showBadge
+      tags: [badges]
+      summary: One badge's document and measurements, or its geometry as SVG.
+      parameters:
+        - $ref: "#/components/parameters/colorway"
+        - $ref: "#/components/parameters/padding"
+      responses:
+        "200":
+          description: The badge.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Badge"
+            image/svg+xml:
+              schema:
+                type: string
+              description: The geometry, fills as colour-slot custom properties over value greys, or resolved when `?colorway=` names one. Ask with a `.svg` extension.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /colorways:
+    get:
+      operationId: listColorways
+      tags: [colorways]
+      summary: Every colorway.
+      responses:
+        "200":
+          description: Summaries.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ColorwaySummary"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /colorways/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: integer }
+    get:
+      operationId: showColorway
+      tags: [colorways]
+      summary: One colorway's rules and the colours they resolve to, or the badge wearing it as SVG.
+      parameters:
+        - $ref: "#/components/parameters/padding"
+      responses:
+        "200":
+          description: The colorway.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Colorway"
+            image/svg+xml:
+              schema:
+                type: string
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+components:
+  securitySchemes:
+    bearer:
+      type: http
+      scheme: bearer
+      description: The host application's API token.
+
+  parameters:
+    badgeKey:
+      name: key
+      in: path
+      required: true
+      description: The badge's id, or its name.
+      schema: { type: string }
+    colorway:
+      name: colorway
+      in: query
+      required: false
+      description: A colorway id; the SVG comes back wearing it.
+      schema: { type: integer }
+    padding:
+      name: padding
+      in: query
+      required: false
+      description: Room around the ink, in badge units. 0 to 400.
+      schema: { type: number, default: 0 }
+
+  responses:
+    Unauthorized:
+      description: No token, or one the host refused.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    NotFound:
+      description: No such badge or colorway.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error: { type: string }
+      required: [error]
+
+    Point:
+      type: object
+      properties:
+        x: { type: number }
+        y: { type: number }
+
+    BadgeSummary:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        slots: { type: integer, description: How many colour slots the badge uses. }
+        colorways: { type: integer }
+      required: [id, name, slots, colorways]
+
+    Badge:
+      allOf:
+        - $ref: "#/components/schemas/BadgeSummary"
+        - type: object
+          properties:
+            spec:
+              type: object
+              description: The document the badge is composed from, with every parameter named for what it means.
+            ink_bounds:
+              type: object
+              properties:
+                x: { type: number }
+                y: { type: number }
+                width: { type: number }
+                height: { type: number }
+            optical_center:
+              $ref: "#/components/schemas/Point"
+            anchors:
+              type: object
+              description: The nine reference points of the container's bounds and its centroid, for hanging sibling elements off badge geometry.
+              additionalProperties:
+                $ref: "#/components/schemas/Point"
+            container:
+              type: string
+              description: The root container's path data, separately, for a knockout against a field or silhouette reuse.
+            slot_list:
+              type: array
+              items:
+                type: object
+                properties:
+                  rank: { type: integer }
+                  name: { type: string }
+                  property: { type: string, description: The CSS custom property the SVG's fills read. }
+                  value: { type: string, description: The value grey the fill falls back to. }
+            pieces:
+              type: array
+              items:
+                type: object
+                properties:
+                  kind: { type: string, enum: [container, region, type, illustration] }
+                  name: { type: [string, "null"] }
+                  slot: { type: [integer, "null"] }
+                  depth: { type: integer }
+
+    ColorwaySummary:
+      type: object
+      properties:
+        id: { type: integer }
+        badge_id: { type: integer }
+        palette_id: { type: integer, description: The palette's id in Pandatone. }
+        palette_name: { type: [string, "null"] }
+        invalidated: { type: boolean, description: Whether the badge has outgrown the palette. }
+      required: [id, badge_id, palette_id, invalidated]
+
+    Colorway:
+      allOf:
+        - $ref: "#/components/schemas/ColorwaySummary"
+        - type: object
+          properties:
+            taken_at: { type: [string, "null"], format: date-time }
+            rules:
+              type: array
+              items:
+                type: object
+                properties:
+                  slot: { type: integer }
+                  kind: { type: string, enum: [auto_value_match, assigned_slot] }
+                  settings: { type: object }
+            colors:
+              type: array
+              description: A hex per slot rank, in rank order. Empty while invalidated.
+              items: { type: string }

@@ -1,0 +1,89 @@
+<% content_for :title, @badge.name %>
+<% content_for :main_class, "grid" %>
+
+<header class="page-head run">
+  <h1><%= @badge.name %></h1>
+  <div class="run">
+    <%= link_to "Edit", edit_badge_path(@badge), class: "button button--quiet" %>
+    <%= button_to "Delete", badge_path(@badge), method: :delete, class: "button button--quiet",
+          form: { data: { turbo_confirm: "Take #{@badge.name} away?" } } %>
+  </div>
+</header>
+
+<figure class="preview-figure">
+  <%= badge_preview @badge, colorway: @colorway %>
+  <figcaption>
+    <% if @colorway %>
+      Wearing <%= @colorway.palette_name %>.
+      <%= link_to "Undressed", badge_path(@badge) %>
+    <% else %>
+      Drawn in value, paper to ink. No palette has been chosen, and the badge is complete without one.
+    <% end %>
+  </figcaption>
+</figure>
+
+<div class="detail stack">
+  <dl class="pairs">
+    <dt>Slots</dt>
+    <dd><%= pluralize @badge.slot_count, "colour slot" %>, ranked from the ground</dd>
+    <dt>Ink</dt>
+    <dd><% b = @badge.output.ink_bounds %><%= number_with_precision(b[1].x - b[0].x, precision: 1) %> by <%= number_with_precision(b[1].y - b[0].y, precision: 1) %> units</dd>
+    <dt>Pieces</dt>
+    <dd><%= @badge.output.pieces.size %></dd>
+  </dl>
+
+  <table class="table slots">
+    <caption>The slots. A colorway resolves each rank against a palette; nothing here holds a colour of its own.</caption>
+    <thead>
+      <tr><th scope="col">Slot</th><th scope="col">Used by</th><% if @colorway %><th scope="col">Wearing</th><th scope="col">Binding</th><% end %></tr>
+    </thead>
+    <tbody>
+      <% @badge.slots.each do |slot| %>
+        <tr>
+          <td><%= slot_swatch slot.value %> <%= slot.name.humanize %> <span class="hint"><%= slot.property %></span></td>
+          <td><%= pluralize slot.pieces, "piece" %></td>
+          <% if @colorway %>
+            <td><% hex = @colorway.colors[slot.rank] %><%= slot_swatch hex %> <code><%= hex %></code></td>
+            <td>
+              <%= rule_name @colorway.rule_for(slot.rank) %>
+              <%= form_with url: badge_colorway_path(@badge, @colorway), method: :patch, class: "bind run" do |f| %>
+                <%= f.hidden_field :slot, value: slot.rank %>
+                <%= f.select :index, (0...@colorway.snapshot.size).map { |i| [ "Colour #{i}", i ] }, {}, "aria-label": "Palette colour for #{slot.name}" %>
+                <%= f.hidden_field :kind, value: "assigned_slot" %>
+                <%= f.submit "Assign", class: "button button--quiet" %>
+              <% end %>
+            </td>
+          <% end %>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+
+  <section class="colorways stack">
+    <div class="run">
+      <%= link_to "Dress this badge", new_badge_colorway_path(@badge), class: "button" %>
+      <span class="hint">Colour arrives from Pandatone as a rule over a snapshot, never as a list of hexes.</span>
+    </div>
+
+    <% @badge.colorways.each do |colorway| %>
+      <article class="colorway run">
+        <%= link_to colorway.palette_name, badge_path(@badge, colorway: colorway) %>
+        <% colorway.colors.each { |hex| concat slot_swatch(hex) } %>
+        <% if colorway.invalidated? %><span class="hint">The badge has outgrown this palette.</span><% end %>
+        <%= button_to "Check for drift", drift_badge_colorway_path(@badge, colorway), method: :patch, class: "button button--quiet" %>
+        <%= button_to "Take off", badge_colorway_path(@badge, colorway), method: :delete, class: "button button--quiet" %>
+      </article>
+    <% end %>
+  </section>
+
+  <details class="document">
+    <summary>The document</summary>
+    <pre><code><%= @badge.spec_yaml %></code></pre>
+  </details>
+
+  <p class="hint">
+    As a file: <%= link_to "SVG, unresolved", api_v1_badge_path(@badge, format: :svg) %>
+    <% if @colorway %> · <%= link_to "SVG, wearing #{@colorway.palette_name}", api_v1_badge_path(@badge, format: :svg, colorway: @colorway.id) %><% end %>
+    · <%= link_to "JSON", api_v1_badge_path(@badge, format: :json) %>. The API takes the host's token.
+  </p>
+</div>
