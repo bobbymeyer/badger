@@ -85,6 +85,8 @@ module Badger
       Geometry::Path.new(subpaths)
     end
 
+    def bounds(tolerance: 0.1) = path.bounds(tolerance: tolerance)
+
     def placements
       @placements ||= begin
         pen = origin

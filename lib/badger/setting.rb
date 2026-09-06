@@ -14,6 +14,7 @@ module Badger
 
     def path = run.path.transform(affine)
     def ink_bounds(tolerance: 0.1) = path.bounds(tolerance: tolerance)
+    def bounds(tolerance: 0.1) = ink_bounds(tolerance: tolerance)
 
     def ink_center
       min, max = ink_bounds
