@@ -18,7 +18,7 @@ The full design, scope and build order live in [HANDOFF.md](HANDOFF.md). This RE
 | 6 | Union scope flag, knockout, offset stroke | done |
 | 7 | Color slots and output metadata | done |
 | 8 | Primitives, illustration containers | done |
-| 9 | Engine, UI on its-swiss, OpenAPI | not started |
+| 9 | Engine, UI on its-swiss, OpenAPI | done: `engine/` |
 
 The core gem is plain Ruby. Shaping and outline extraction go through a Python sidecar that ships inside the gem (`lib/badger/sidecar/shape.py`): HarfBuzz via uharfbuzz, outlines via fontTools, one JSON request per process. The gem's public interface is Ruby only.
 
@@ -161,6 +161,35 @@ art.to_container                                     # its outline as a containe
 
 The primitives are the whole set the handoff names; anything more parametric is the shape node's job. Illustration parsing is REXML, the gem's one runtime dependency. `examples/step8_demo.rb` shows the six primitives as containers, both kinds of artwork, and type following a leaf.
 
+## The document, and step 9
+
+A badge is a document. `Badger::Spec.build(doc)` turns one into the container tree, with every parameter named for what it means:
+
+```yaml
+name: Stockholm Stadion
+shape: { kind: ellipse, rx: 260, ry: 170 }
+regions:
+  - { kind: rule, distance: 0, weight: 5 }
+  - { kind: band, name: ring, outer: -8, width: 40 }
+  - { kind: rule, distance: -50, weight: 2 }
+  - { kind: interior, name: field, inside: -52 }
+type:
+  - { mode: follow, text: STOCKHOLM STADION, font: Archivo, region: ring, inset: 7, sweep: top, align: justify }
+  - { mode: follow, text: "1912", font: Archivo, region: ring, from: outer, inset: 7, sweep: bottom, tracking: 12 }
+  - { mode: fit, text: OLYMPIA, font: Archivo, region: field, fit: chord_at_y, at: 0, inset: 24, edge: narrowest }
+  - { mode: fixed, text: EST., font: Archivo, size: 14, at: { polar: { angle: 180, radius: 150 } }, align: left }
+```
+
+Fonts are named, not pathed: `Badger::Fonts.add_directory(dir)` scans for TrueType, OpenType and woff2 files and a document says `font: Archivo-Bold`. `sweep: top` and `sweep: bottom` find the run from the leftmost to the rightmost point by way of that side on any closed spine, reading left to right.
+
+**The engine** lives in `engine/` as a second gem, `badger-rails`, packaged the way Pandatone and Stripeclub are: its own controllers, routes, views, migrations and stylesheets under the `Badger` namespace and the `badger_` table prefix, inheriting the host's door and shell. It stores badges as documents, renders them in value, dresses them in a Pandatone palette as a colorway (a snapshot plus a rule per slot, drift reported and never applied), and serves a read-only JSON API described at `api/v1/openapi`. The Ruby interface is `Badger.badges`, `Badger.badge(key)`, `Badger.badge_svg(key, colorway:)`, `Badger.colorways`, `Badger.colorway(id)`.
+
+A host takes both gems from one tag, sets `Badger.palette_source` and `Badger.font_directories` in an initializer, mounts `Badger::Engine`, and installs `requirements.txt` into its Python. `bin/rails badger:doctor` says whether the sidecar can run; `bin/rails badger:seed` plants Stockholm, Giletti and Le Dive.
+
+```sh
+cd engine && bundle install && bin/rails test   # the engine's suite, against the dummy host under test/
+```
+
 ## What step 1 gives you
 
 ```ruby
@@ -209,7 +238,7 @@ Tests shape against `test/fixtures/badger-test.ttf`, a 1 KB font with exact know
 
 ## Next
 
-- Step 9: the Rails engine mounted at `/badger` in the chassis, the UI on its-swiss, the OpenAPI spec, and the colorway against Pandatone following Stripeclub's pattern.
+- The acceptance test proper: Stockholm Stadion 1912 against the reference, once the reference and its font are to hand. The seed is the mechanism, not the result.
 - Corners still break spines: a run across a concave vertex tears, as the handoff says. `Follow` flags the placement; filleting the spine or breaking the run there is not built yet.
 - Each boolean is a sidecar process today. If badges get interactive, a long-lived worker is a change inside the gem, not the chassis.
 - The polyline offset in the geometry layer is enough for region derivation on convex-ish containers; the effects layer offsets through Skia.

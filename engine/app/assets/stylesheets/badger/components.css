@@ -1,0 +1,89 @@
+/* Badger's own components: what this application is rather than what it
+ * looks like. Unlayered, like theme.css. */
+
+.preview {
+  border: var(--rule-hairline, 1px) solid var(--rule);
+  background: var(--paper);
+  padding: var(--space-2, 0.5rem);
+}
+
+.preview svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 32rem;
+}
+
+.preview--failed {
+  color: var(--ink-quiet);
+}
+
+.preview-figure { margin: 0; }
+
+.preview-figure figcaption {
+  padding-block-start: var(--space-2);
+  color: var(--ink-quiet);
+  font-size: var(--size-1);
+  max-width: var(--measure);
+}
+
+.badge-cards {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  gap: var(--gutter, 1.5rem);
+}
+
+.badge-card a {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+
+.badge-card__name {
+  display: block;
+  padding-block-start: var(--space-2);
+  font-weight: 600;
+}
+
+.badge-card__meta {
+  display: block;
+  color: var(--ink-quiet);
+  font-size: var(--size-1);
+}
+
+.page-head {
+  justify-content: space-between;
+  align-items: baseline;
+  padding-block-end: var(--space-3);
+}
+
+.slot-swatch,
+.palette-swatch {
+  display: inline-block;
+  inline-size: 1rem;
+  block-size: 1rem;
+  vertical-align: middle;
+  border: var(--rule-hairline, 1px) solid var(--rule);
+  margin-inline-end: var(--space-1, 0.25rem);
+}
+
+.palette-strip {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.palette-strip li { display: inline-flex; align-items: center; gap: var(--space-1); }
+
+.palettes { list-style: none; padding: 0; margin: 0; }
+.palettes .palette { justify-content: space-between; align-items: center; padding-block: var(--space-3); border-block-end: var(--rule-hairline, 1px) solid var(--rule); }
+
+.colorway { align-items: center; flex-wrap: wrap; }
+.bind { align-items: center; }
+.document pre { max-width: var(--measure); overflow: auto; font-size: var(--size-1); }

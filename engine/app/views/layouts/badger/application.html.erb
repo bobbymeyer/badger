@@ -1,0 +1,13 @@
+<%# The engine's layout is the host's layout with the engine's own things
+    added: its stylesheets and its destination. Everything else, the shell,
+    the mark, the door, is the host's. %>
+
+<% content_for :head do %>
+  <%= stylesheet_link_tag "badger/tokens", "badger/components", "data-turbo-track": "reload" %>
+<% end %>
+
+<% content_for :sections do %>
+  <%= nav_link_to "Badges", badges_path, current: controller_path.start_with?("badger/badges") %>
+<% end %>
+
+<%= render template: "layouts/application" %>

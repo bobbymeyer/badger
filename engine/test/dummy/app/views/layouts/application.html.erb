@@ -1,0 +1,18 @@
+<%# What a host's layout has to do for the engine: render its-swiss's shell,
+    and put the engine's :sections where the destinations go. The route
+    helpers are called through main_app, because inside an engine's request
+    the bare names are the engine's. %>
+<% content_for :head do %>
+  <%= stylesheet_link_tag "theme", "data-turbo-track": "reload" %>
+<% end %>
+
+<% content_for :mark do %>
+  <%= link_to "Dummy", main_app.root_path %>
+<% end %>
+
+<% content_for :nav do %>
+  <%= nav_link_to "Badger", "/badger", current: request.path.start_with?("/badger") %>
+  <%= yield :sections %>
+<% end %>
+
+<%= render template: "layouts/its_swiss/shell" %>

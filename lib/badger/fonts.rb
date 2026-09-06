@@ -2,12 +2,13 @@
 
 module Badger
   # Where fonts come from when a badge names one. Directories are scanned
-  # for TrueType and OpenType files and a font is addressed by its file
-  # name without the extension ("Archivo-Bold"), or by a path.
+  # for TrueType and OpenType files (web-wrapped woff2 too; the sidecar
+  # unwraps them) and a font is addressed by its file name without the
+  # extension ("Archivo-Bold"), or by a path.
   module Fonts
     class Unknown < Badger::Error; end
 
-    EXTENSIONS = %w[.ttf .otf].freeze
+    EXTENSIONS = %w[.ttf .otf .woff2 .woff].freeze
 
     @directories = []
     @registry = {}

@@ -49,8 +49,16 @@ def shape(request):
     variations = request.get("variations") or {}
     features = request.get("features") or {}
 
-    blob = hb.Blob.from_file_path(path)
-    face = hb.Face(blob)
+    tt = TTFont(path)
+    if tt.flavor in ("woff", "woff2"):
+        # HarfBuzz reads sfnt, not the web wrappers; fontTools unwraps them.
+        from io import BytesIO
+        tt.flavor = None
+        buffer = BytesIO()
+        tt.save(buffer)
+        face = hb.Face(buffer.getvalue())
+    else:
+        face = hb.Face(hb.Blob.from_file_path(path))
     font = hb.Font(face)
     if variations:
         font.set_variations(variations)
@@ -66,7 +74,6 @@ def shape(request):
         buffer.language = request["language"]
     hb.shape(font, buffer, {k: bool(v) for k, v in features.items()})
 
-    tt = TTFont(path)
     glyph_set = tt.getGlyphSet(location=variations or None)
     order = tt.getGlyphOrder()
 

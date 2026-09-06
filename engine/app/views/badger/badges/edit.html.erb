@@ -1,0 +1,3 @@
+<% content_for :title, "Edit #{@badge.name}" %>
+<h1 class="page-title"><%= @badge.name %></h1>
+<%= render "form", badge: @badge, submit_label: "Save", cancel_to: badge_path(@badge) %>

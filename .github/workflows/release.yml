@@ -1,0 +1,50 @@
+name: Release
+
+# Cut a version by pushing its tag:
+#
+#   git tag v0.1.0 && git push origin v0.1.0
+#
+# Badger is not published to RubyGems. A host takes both gems from the tag:
+#
+#   git "https://github.com/bobbymeyer/badger", tag: "v0.1.0" do
+#     gem "badger"
+#     gem "badger-rails"
+#   end
+on:
+  push:
+    tags: [ "v*" ]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+
+      - name: The tag and the gemspec agree
+        run: |
+          tagged="${GITHUB_REF_NAME#v}"
+          built="$(ruby -Ilib -e 'require "badger/version"; print Badger::VERSION')"
+          test "$tagged" = "$built" || { echo "tag $GITHUB_REF_NAME does not match Badger::VERSION $built"; exit 1; }
+
+      - run: bundle exec rake test
+      - run: cd engine && bundle install && bin/rails test
+      - run: gem build badger.gemspec
+      - run: cd engine && gem build badger-rails.gemspec && mv badger-rails-*.gem ..
+
+      - name: Open the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" badger-*.gem \
+            --title "$GITHUB_REF_NAME" \
+            --notes "See CHANGELOG.md. Take both gems from this tag with a git block in the host's Gemfile."
