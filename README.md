@@ -172,5 +172,5 @@ Tests shape against `test/fixtures/badger-test.ttf`, a 1 KB font with exact know
 
 - Step 7: the output contract. Colour slots left unresolved, ink bounds and optical centre, the container path returned separately, anchor points on the container.
 - Each boolean is a sidecar process today. If badges get interactive, a long-lived worker is a change inside the gem, not the chassis.
-- Robust offsets (self-intersection cleanup) and booleans through skia-pathops in the sidecar. The polyline offset here is enough for convex-ish containers and the small distances badges use.
+- The polyline offset in the geometry layer is enough for region derivation on convex-ish containers; the effects layer offsets through Skia.
 - Optical spacing (HTLetterspacer) as a second sidecar op, once the revival pipeline's implementation is available to reuse.
