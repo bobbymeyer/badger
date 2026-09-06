@@ -5,8 +5,6 @@ module Badger
     # An immutable 2D point / vector. Coordinates follow SVG conventions:
     # x grows to the right, y grows downward.
     Point = Data.define(:x, :y) do
-      def self.[](x, y) = new(x: x.to_f, y: y.to_f)
-
       def +(other) = Point.new(x + other.x, y + other.y)
       def -(other) = Point.new(x - other.x, y - other.y)
       def *(scalar) = Point.new(x * scalar, y * scalar)
