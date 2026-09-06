@@ -83,6 +83,28 @@ module Badger
 
     def advances = glyphs.map(&:advance)
     def width = advances.sum
+
+    # The same shaping at another size. Shaped positions are linear in the
+    # em, so this is exact and needs no sidecar round trip.
+    def scale_by(factor)
+      raise ArgumentError, "scale factor must be positive" unless factor.positive?
+
+      k = factor.to_f
+      scaled = Geometry::Affine.scale(k)
+      Run.new(
+        glyphs: glyphs.map do |g|
+          g.with(advance: g.advance * k, x_offset: g.x_offset * k, y_offset: g.y_offset * k,
+                 outline: g.outline.transform(scaled))
+        end,
+        size: size * k, scale: scale * k,
+        metrics: Font::Metrics.new(*metrics.to_h.transform_values { |v| v&.*(k) }.values_at(:ascender, :descender, :cap_height, :x_height))
+      )
+    end
+
+    def at_size(new_size) = scale_by(new_size / size)
+
+    def ink_width = ink_bounds&.then { |min, max| max.x - min.x }
+    def ink_height = ink_bounds&.then { |min, max| max.y - min.y }
     def cap_height = metrics.cap_height
     def x_height = metrics.x_height
     def text = glyphs.map(&:text).join
