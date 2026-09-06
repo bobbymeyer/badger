@@ -17,8 +17,9 @@ module Badger
   # Colours are never baked in. to_svg emits fills as custom properties
   # over the value grey unless a colours map is given.
   class Output
-    Piece = Data.define(:kind, :name, :path, :rank, :depth) do
+    Piece = Data.define(:kind, :name, :path, :rank, :depth, :affine, :markup) do
       def d = path.to_d
+      def passthrough? = !markup.nil?
     end
 
     SlotInfo = Data.define(:rank, :name, :given, :value, :pieces) do
@@ -31,9 +32,11 @@ module Badger
       @container = container
       @world = world
       resolved = container.resolve(world: world)
-      ranks = resolved.map(&:slot).uniq.sort
+      # multi-colour artwork keeps its baked fills and takes no slot
+      ranks = resolved.reject(&:markup).map(&:slot).uniq.sort
       @pieces = resolved.map do |r|
-        Piece.new(kind: r.kind, name: r.name, path: r.path, rank: ranks.index(r.slot), depth: r.depth)
+        Piece.new(kind: r.kind, name: r.name, path: r.path, rank: r.markup ? nil : ranks.index(r.slot), depth: r.depth,
+                  affine: r.affine, markup: r.markup)
       end.freeze
       @slots = ranks.each_with_index.map do |given, dense|
         SlotInfo.new(rank: dense, name: Slot.name_for(dense, ranks.size), given: given,
@@ -103,9 +106,12 @@ module Badger
       fill = fills(colors)
       f = Geometry.method(:fmt)
       body = pieces.map do |piece|
-        attrs = [%(d="#{piece.d}"), %(fill="#{fill[piece.rank]}"), %(data-slot="#{piece.rank}"), %(data-kind="#{piece.kind}")]
-        attrs << %(data-name="#{piece.name}") if piece.name
-        "  <path #{attrs.join(' ')}/>"
+        name = piece.name ? %( data-name="#{piece.name}") : ""
+        if piece.passthrough?
+          %(  <g transform="#{piece.affine.to_svg}" data-kind="#{piece.kind}" data-passthrough="true"#{name}>#{piece.markup}</g>)
+        else
+          %(  <path d="#{piece.d}" fill="#{fill[piece.rank]}" data-slot="#{piece.rank}" data-kind="#{piece.kind}"#{name}/>)
+        end
       end
       viewbox = [min.x - padding, min.y - padding, width + 2 * padding, height + 2 * padding].map { |v| f.(v) }.join(" ")
       <<~SVG
@@ -123,7 +129,7 @@ module Badger
         container: container_path.to_d,
         anchors: anchors.transform_values { |p| { x: p.x, y: p.y } },
         slots: slots.map { |s| { rank: s.rank, name: s.name, property: s.property, value: s.value, pieces: s.pieces } },
-        pieces: pieces.map { |p| { kind: p.kind, name: p.name, slot: p.rank, depth: p.depth, d: p.d } }
+        pieces: pieces.map { |p| { kind: p.kind, name: p.name, slot: p.rank, depth: p.depth, d: p.d, passthrough: p.passthrough? } }
       }
     end
 

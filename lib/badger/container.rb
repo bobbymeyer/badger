@@ -98,11 +98,12 @@ module Badger
     def resolve(world: Geometry::Affine.identity, depth: 0)
       out = []
       if visible?
-        out << Resolved.new(kind: :container, name: name, path: path.transform(world), source: self, depth: depth, slot: slot)
+        out << Resolved.new(kind: :container, name: name, path: path.transform(world), source: self, depth: depth,
+                            slot: slot, affine: world, markup: nil)
       end
       visible_regions.each do |region|
         out << Resolved.new(kind: :region, name: region.name, path: region.path.transform(world), source: region,
-                            depth: depth, slot: region.slot)
+                            depth: depth, slot: region.slot, affine: world, markup: nil)
       end
       nodes.each do |node|
         local = world * node.affine
@@ -111,7 +112,7 @@ module Badger
           out.concat(node.child.resolve(world: local, depth: depth + 1))
         else
           out << Resolved.new(kind: node.kind, name: node.name, path: node.local_path.transform(local),
-                              source: node.child, depth: depth + 1, slot: node.slot)
+                              source: node.child, depth: depth + 1, slot: node.slot, affine: local, markup: node.markup)
         end
       end
       out

@@ -41,6 +41,9 @@ module Badger
     # scale_x; scale_y differs only under axes: :both.
     def to_box(run, width: nil, height: nil)
       return Result.new(run: run, scale_x: 1.0, scale_y: 1.0) if policy == :fixed
+      if axes == :both && run.respond_to?(:uniform_only?) && run.uniform_only?
+        raise ArgumentError, "illustration scales uniformly only; use axes: :width or :height"
+      end
 
       ink_w = run.ink_width
       ink_h = run.ink_height
@@ -103,9 +106,11 @@ module Badger
     end
 
     def contain(run, kx, ky)
-      candidates = [kx, ky, max_size / run.size].compact
-      candidates = [kx, max_size / run.size].compact if axes == :width && kx
-      candidates = [ky, max_size / run.size].compact if axes == :height && ky
+      # the size cap is a type notion; artwork has no em to cap
+      cap = run.respond_to?(:size) ? max_size / run.size : nil
+      candidates = [kx, ky, cap].compact
+      candidates = [kx, cap].compact if axes == :width && kx
+      candidates = [ky, cap].compact if axes == :height && ky
       k = candidates.min
       Result.new(run: run.scale_by(k), scale_x: k, scale_y: k)
     end

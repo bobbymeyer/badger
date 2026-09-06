@@ -16,6 +16,8 @@ Gem::Specification.new do |spec|
   spec.files = Dir["lib/**/*.{rb,py}", "requirements.txt", "README.md", "HANDOFF.md", "LICENSE"]
   spec.require_paths = ["lib"]
 
+  spec.add_dependency "rexml", "~> 3.2"
+
   spec.add_development_dependency "minitest", "~> 5.20"
   spec.add_development_dependency "rake", "~> 13.0"
 end
