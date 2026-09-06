@@ -116,6 +116,33 @@ module Badger
         Spine.new(pieces.reverse.map(&:reversed), closed: closed?, corner_threshold: corner_threshold)
       end
 
+      # The run a line of type takes across the top or bottom of a closed
+      # spine, reading left to right: from the leftmost point to the
+      # rightmost point by way of that side.
+      Sweep = Data.define(:spine, :start, :length) do
+        def end = start + length
+      end
+
+      def sweep(side, samples: 720)
+        raise ArgumentError, "sweep is :top or :bottom" unless %i[top bottom].include?(side)
+        raise ArgumentError, "a sweep needs a closed spine" unless closed?
+
+        points = Array.new(samples) { |i| [length * i / samples.to_f, point_at(length * i / samples.to_f)] }
+        upper = side == :top
+        left = points.min_by { |_, p| [p.x, upper ? p.y : -p.y] }
+        right = points.min_by { |_, p| [-p.x, upper ? p.y : -p.y] }
+        forward_length = (right[0] - left[0]) % length
+        forward_mid = point_at(left[0] + forward_length / 2)
+        centre_y = (points.map { |_, p| p.y }.min + points.map { |_, p| p.y }.max) / 2
+        forward_is_that_side = upper ? forward_mid.y < centre_y : forward_mid.y > centre_y
+
+        if forward_is_that_side
+          Sweep.new(spine: self, start: left[0], length: forward_length)
+        else
+          Sweep.new(spine: reversed, start: (length - left[0]) % length, length: length - forward_length)
+        end
+      end
+
       # Polyline with every vertex on the curve; a closed spine does not
       # repeat its first vertex at the end.
       def flatten(tolerance = 0.25)
