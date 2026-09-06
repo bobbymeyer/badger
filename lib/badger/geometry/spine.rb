@@ -30,6 +30,10 @@ module Badger
         @offsets = @tables.each_with_object([0.0]) { |table, acc| acc << acc.last + table.length }
       end
 
+      def inspect
+        "#<#{self.class.name} #{closed? ? 'closed' : 'open'} length=#{Geometry.fmt(length)} pieces=#{pieces.size}>"
+      end
+
       def closed? = @closed
       def open? = !@closed
       def length = @offsets.last
