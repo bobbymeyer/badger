@@ -6,6 +6,13 @@ Badger::Engine.routes.draw do
     resources :colorways, only: %i[ new create update destroy ], module: :badges do
       patch :drift, on: :member
     end
+
+    # The editor's round trip: a document in, the drawing and its
+    # construction out, nothing saved.
+    post :render, on: :member, to: "badges/renders#create"
+
+    # The photograph a badge is redrawn from, under the drawing.
+    resource :reference, only: %i[ show create update destroy ], module: :badges
   end
 
   # The API is versioned from the first commit: other tools depend on this

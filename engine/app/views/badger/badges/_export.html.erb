@@ -1,5 +1,39 @@
 <%# locals: (badge:, colorway:) %>
-<%# How the badge leaves: as a drawing, in value and in each colorway, and as data. %>
+<%# How the badge leaves: as a drawing, in value and in each colorway, and as
+    data; and the slots the files carry as custom properties, unresolved. %>
+<section class="slots stack">
+  <h2>Slots</h2>
+  <%= explain "The colour slots the files carry as custom properties, ranked from the ground: slot 0 is the " \
+        "lightest and the last is the darkest. Nothing here holds a colour of its own; a " \
+        "colorway resolves each rank against a palette." %>
+
+  <table class="table slots">
+    <thead>
+      <tr><th scope="col">Slot</th><th scope="col">Property</th><th scope="col">Used by</th></tr>
+    </thead>
+    <tbody>
+      <% badge.slots.each do |slot| %>
+        <tr>
+          <td><%= slot_swatch slot.value %> <%= slot.name.humanize %></td>
+          <td class="quiet"><%= slot.property %></td>
+          <td><%= pluralize slot.pieces, "piece" %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</section>
+
+<section class="document-section stack">
+  <h2>Document</h2>
+  <%= explain "The badge as written: a shape, the regions it derives, type set into them. " \
+        "The editor on Compose edits it; this is the same document as text." %>
+
+  <details class="document">
+    <summary>The document</summary>
+    <pre><code><%= badge.spec_yaml %></code></pre>
+  </details>
+</section>
+
 <section class="export stack">
   <%= explain "The files are the API's, and the API takes the host's token. The SVG is the " \
         "drawing in the document's units; the JSON is the document with what was derived " \

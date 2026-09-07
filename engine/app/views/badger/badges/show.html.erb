@@ -7,14 +7,21 @@
      [ section.humanize, badge_path(@badge, section: (section unless section == "compose"), colorway: @colorway), @section == section ]
    } %>
 <%= page_head @badge.name, sections: sections do %>
-  <%= link_to "Edit", edit_badge_path(@badge), class: "button" %>
+  <% if @section == "compose" %>
+    <%# The editor's own form, outside the head, is what this submits. %>
+    <button type="submit" form="badger-editor-save" class="button button--primary">Save</button>
+  <% end %>
+  <%= link_to "Edit", edit_badge_path(@badge), class: "button button--quiet" %>
   <%= button_to "Take away", badge_path(@badge), method: :delete, class: "button button--danger",
         form: { data: { turbo_confirm: "Take #{@badge.name} away?" } } %>
 <% end %>
 
+<% if @section == "compose" %>
+  <%= render "badger/badges/editor", badge: @badge %>
+<% else %>
 <div class="preview-column stack">
   <figure class="preview-figure">
-    <%= badge_preview @badge, colorway: @colorway %>
+    <%= badge_preview @badge, colorway: @colorway, reference: @badge.reference %>
     <% if @colorway %>
       <figcaption>Wearing <%= @colorway.palette_name %>. <%= link_to "Undressed", badge_path(@badge, section: (@section unless @section == "compose")) %></figcaption>
     <% end %>
@@ -37,3 +44,4 @@
 <div class="detail stack">
   <%= render "badger/badges/#{@section}", badge: @badge, colorway: @colorway %>
 </div>
+<% end %>

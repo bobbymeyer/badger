@@ -6,6 +6,7 @@ module Badger
   # render time, so the record holds nothing that the document does not.
   class Badge < ApplicationRecord
     has_many :colorways, dependent: :destroy, inverse_of: :badge
+    has_one :reference, dependent: :destroy, inverse_of: :badge
 
     before_validation :strip_name
 
@@ -67,6 +68,19 @@ module Badger
 
     def slots
       output.slots
+    end
+
+    # Everything the editor draws from, in one answer: the drawing with room
+    # around it, the construction under it, what went wrong without failing,
+    # the slots and the ink. Padding is the editor's, so a handle at the
+    # edge of the ink has somewhere to be.
+    PADDING = 12.0
+
+    def rendering
+      out = output
+      { svg: out.to_svg(padding: PADDING), construction: out.construction, warnings: out.warnings,
+        slots: out.slots.map { |s| { rank: s.rank, name: s.name, value: s.value, pieces: s.pieces } },
+        ink: { x: out.ink_bounds[0].x, y: out.ink_bounds[0].y, width: out.width, height: out.height }, padding: PADDING }
     end
 
     def slot_count

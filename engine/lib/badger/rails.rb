@@ -11,3 +11,4 @@
 require "badger"
 require "badger/engine"
 require "badger/seeds"
+require "badger/editor"

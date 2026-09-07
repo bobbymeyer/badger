@@ -19,7 +19,8 @@ Everything Badger does decomposes into that sentence. It is also the scope test:
 | Container as SVG path input | Shape authoring or drawing |
 | A small set of shape primitives | Boolean intersections between containers |
 | Type fitted to, following, or fixed within regions | General layout surface (poster is a separate tool) |
-| Illustration elements placed in containers | Node/pen editing, canvas interaction |
+| Illustration elements placed in containers | Node/pen editing of paths |
+| An editor whose handles move the document's parameters | A canvas that draws freely |
 | Knockout, single offset stroke | Shadow stacks, textures, engraving, envelope warps |
 | SVG out, with metadata | Raster effects, blur |
 

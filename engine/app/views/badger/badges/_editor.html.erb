@@ -1,0 +1,126 @@
+<%# locals: (badge:) %>
+<%# The editor: the document as a tree, the drawing with its construction
+    as the controls, and an inspector for the entry selected. Three fields,
+    six, three. Everything it draws comes from the server's render of the
+    document it holds; nothing is saved until Save. %>
+<% reference = badge.reference %>
+<div class="editor" id="badger-editor"
+     data-controller="badger-editor"
+     data-badger-editor-document-value="<%= badge.spec.to_json %>"
+     data-badger-editor-rendering-value="<%= badge.rendering.to_json %>"
+     data-badger-editor-schema-value="<%= Badger::Editor.schema.to_json %>"
+     data-badger-editor-starters-value="<%= Badger::Editor.starters(font: Badger::Fonts.names.first).to_json %>"
+     data-badger-editor-fonts-value="<%= Badger::Fonts.names.to_json %>"
+     data-badger-editor-render-url-value="<%= render_badge_path(badge) %>"
+     data-badger-editor-save-url-value="<%= badge_path(badge) %>"
+     data-badger-editor-reference-value="<%= (reference ? reference.slice(:x, :y, :scale, :opacity, :width, :height).merge(url: badge_reference_path(badge)) : {}).to_json %>"
+     data-badger-editor-reference-url-value="<%= badge_reference_path(badge) %>">
+
+  <%# The form the head's Save submits: the document it holds goes as JSON. %>
+  <form id="badger-editor-save" method="post" action="<%= badge_path(badge) %>" data-action="submit->badger-editor#save" hidden>
+    <%= hidden_field_tag :_method, "patch" %>
+    <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
+  </form>
+
+  <aside class="editor__tree">
+    <h3>Document</h3>
+    <p class="hint">A tree of containers. Select a line to work on it.</p>
+    <ol class="tree" data-badger-editor-target="tree"></ol>
+    <div class="tree__adders run">
+      <button type="button" class="tree__add" data-action="badger-editor#add" data-kind="region">+ Region</button>
+      <button type="button" class="tree__add" data-action="badger-editor#add" data-kind="type">+ Type</button>
+      <button type="button" class="tree__add" data-action="badger-editor#add" data-kind="child">+ Child</button>
+      <button type="button" class="tree__add" data-action="badger-editor#add" data-kind="illustration">+ Artwork</button>
+    </div>
+    <p class="micro quiet tree__foot">
+      The document <%= link_to "as YAML", edit_badge_path(badge) %> · <%= link_to "as JSON", api_v1_badge_path(badge, format: :json) %>
+    </p>
+    <p class="micro quiet" data-badger-editor-target="saveState">Saved <%= time_ago_in_words(badge.updated_at) %> ago</p>
+  </aside>
+
+  <div class="editor__stage">
+    <svg class="stage" data-badger-editor-target="svg" xmlns="http://www.w3.org/2000/svg" tabindex="0"
+         data-action="pointerdown->badger-editor#stagePointerDown pointermove->badger-editor#stagePointerMove pointerup->badger-editor#stagePointerUp pointercancel->badger-editor#stagePointerUp wheel->badger-editor#stageWheel keydown->badger-editor#stageKey click->badger-editor#stageClick">
+      <g class="stage__grid" data-badger-editor-target="grid" hidden></g>
+      <g class="stage__reference" data-badger-editor-target="referenceLayer"></g>
+      <g class="stage__pieces" data-badger-editor-target="pieces"></g>
+      <g class="stage__construction" data-badger-editor-target="construction"></g>
+      <g class="stage__handles" data-badger-editor-target="handles"></g>
+    </svg>
+    <div class="stage__bar">
+      <div class="run stage__toggles">
+        <button type="button" class="stage__toggle" aria-pressed="true" data-action="badger-editor#toggleLayer" data-layer="construction"><span class="stage__dot stage__dot--accent"></span>Construction</button>
+        <button type="button" class="stage__toggle" aria-pressed="<%= reference ? 'true' : 'false' %>" data-action="badger-editor#toggleLayer" data-layer="reference"><span class="stage__dot"></span>Reference</button>
+        <button type="button" class="stage__toggle" aria-pressed="false" data-action="badger-editor#toggleLayer" data-layer="grid"><span class="stage__dot"></span>Grid</button>
+      </div>
+      <p class="micro quiet stage__status" data-badger-editor-target="status"></p>
+      <div class="run stage__zoom">
+        <button type="button" class="stage__toggle" aria-pressed="true" data-action="badger-editor#zoom" data-zoom="fit">Fit</button>
+        <button type="button" class="stage__toggle" aria-pressed="false" data-action="badger-editor#zoom" data-zoom="1">100%</button>
+        <button type="button" class="stage__toggle" aria-pressed="false" data-action="badger-editor#zoom" data-zoom="2">200%</button>
+      </div>
+    </div>
+  </div>
+
+  <aside class="editor__inspector">
+    <div data-badger-editor-target="inspector"></div>
+
+    <%# The reference's own panel: a form for the file and the buttons that
+        need the host's token, rendered here and shown when the reference
+        is selected. Its placement fields talk to the controller. %>
+    <div class="inspector__reference stack" data-badger-editor-target="referencePanel" hidden>
+      <div>
+        <p class="micro quiet inspector__kind">Reference · under the drawing</p>
+        <h3 class="inspector__name"><%= reference ? "Photograph, #{reference.width} × #{reference.height} px" : "None yet" %></h3>
+      </div>
+      <% if reference %>
+        <div class="field">
+          <label for="reference_opacity">Strength</label>
+          <input type="range" id="reference_opacity" name="opacity" min="0" max="1" step="0.05" value="<%= reference.opacity %>"
+                 data-action="input->badger-editor#placeReference">
+        </div>
+        <div class="field field--unit">
+          <label for="reference_scale">Units a pixel</label>
+          <input type="number" id="reference_scale" name="scale" step="0.01" min="0.01" value="<%= reference.scale %>"
+                 data-action="input->badger-editor#placeReference">
+        </div>
+        <div class="inspector__pair">
+          <div class="field">
+            <label for="reference_x">Centre x</label>
+            <input type="number" id="reference_x" name="x" step="1" value="<%= reference.x %>" data-action="input->badger-editor#placeReference">
+          </div>
+          <div class="field">
+            <label for="reference_y">Centre y</label>
+            <input type="number" id="reference_y" name="y" step="1" value="<%= reference.y %>" data-action="input->badger-editor#placeReference">
+          </div>
+        </div>
+        <p class="hint">Drag the photograph on the drawing to move it; drag its corner to scale it.</p>
+      <% end %>
+      <%# Two forms, beside each other and never nested: a form inside a form
+          is one form to the browser, and a "take off" inside a "replace" is
+          a replace that takes off. %>
+      <%= form_with url: badge_reference_path(badge), method: :post, multipart: true, class: "form" do |form| %>
+        <div class="field">
+          <label for="reference_image"><%= reference ? "Replace with" : "Put a photograph under the drawing" %></label>
+          <%= form.file_field :image, id: "reference_image", name: "reference[image]", accept: "image/png,image/jpeg" %>
+        </div>
+        <%= form.submit reference ? "Replace" : "Put under", class: "button" %>
+      <% end %>
+      <% if reference %>
+        <%= button_to "Take off", badge_reference_path(badge), method: :delete, class: "button button--quiet",
+              form: { data: { turbo_confirm: "Take the reference off #{badge.name}?" } } %>
+      <% end %>
+    </div>
+
+    <%# The fields the inspector is built from, in the library's markup. %>
+    <template data-badger-editor-target="templates">
+      <div class="field" data-field="text"><label></label><input type="text"></div>
+      <div class="field field--unit" data-field="number"><label></label><input type="number"><span class="unit"></span></div>
+      <div class="field" data-field="select"><label></label><select></select></div>
+      <div class="field" data-field="textarea"><label></label><textarea rows="4" spellcheck="false"></textarea></div>
+      <label class="choice" data-field="toggle"><input type="checkbox"> <span></span></label>
+      <p class="hint" data-field="hint"></p>
+      <p class="field__error" data-field="error"></p>
+    </template>
+  </aside>
+</div>

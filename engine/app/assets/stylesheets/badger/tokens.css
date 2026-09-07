@@ -8,6 +8,10 @@
 main.grid > .preview-column { --span: 2; }
 main.grid > .detail { --span: 4; }
 
+/* The editor takes the whole page and divides it itself: three fields, six,
+   three, on the same gutters. */
+main.grid > .editor { --span: 6; }
+
 @media (max-width: 40rem) {
   main.grid > .preview-column,
   main.grid > .detail { --span: 6; }

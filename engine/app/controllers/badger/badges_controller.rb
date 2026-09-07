@@ -46,11 +46,19 @@ module Badger
       end
     end
 
+    # Saved from the edit page as a form, or from the editor as JSON: the
+    # editor sends the document it holds and hears back whether it was taken.
     def update
       if @badge.update(badge_params)
-        redirect_to @badge, notice: "#{@badge.name} saved."
+        respond_to do |format|
+          format.html { redirect_to @badge, notice: "#{@badge.name} saved." }
+          format.json { render json: { saved_at: @badge.updated_at.iso8601 } }
+        end
       else
-        render :edit, status: :unprocessable_content
+        respond_to do |format|
+          format.html { render :edit, status: :unprocessable_content }
+          format.json { render json: { error: @badge.errors.full_messages.to_sentence }, status: :unprocessable_content }
+        end
       end
     end
 
@@ -65,8 +73,13 @@ module Badger
         @badge = Badge.find(params[:id])
       end
 
+      # The editor sends the document whole, as JSON under `spec`; the edit
+      # page sends it as YAML.
       def badge_params
-        params.expect(badge: [ :name, :spec_yaml ])
+        taken = params.require(:badge)
+        return taken.permit(:name, :spec_yaml) unless taken.key?(:spec)
+
+        { name: taken[:name], spec: taken[:spec].respond_to?(:permit!) ? taken[:spec].permit!.to_h : JSON.parse(taken[:spec].to_s) }.compact
       end
   end
 end
