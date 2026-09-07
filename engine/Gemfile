@@ -11,6 +11,12 @@ gem "badger", path: ".."
 # the way a host does. its-swiss comes from RubyGems through the gemspec.
 gem "pandatone", github: "bobbymeyer/pandatone", tag: "v0.3.0"
 
+# json 3.0.0 (7 September 2026) changed the signature of JSON.parse, and Active
+# Support 8.1.3.1 still calls it the old way: a signed cookie, a JSON column, a
+# schema load all raise. The lock is not committed here, so CI resolves the
+# newest json. Below 3 until a Rails that takes it; the engine does not depend on it.
+gem "json", "< 3"
+
 gem "puma"
 gem "sqlite3", ">= 2.1"
 
