@@ -41,13 +41,34 @@ module Badger
       assert_select ".empty"
     end
 
-    test "showing a badge draws it and lists its slots" do
+    # The compose surface is the editor: the document, its render and the
+    # inspector's schema handed to it on the page, so it draws before it asks
+    # the server for anything.
+    test "showing a badge opens the editor with the document and its render" do
       badge = create_badge
 
       get badge_path(badge)
 
       assert_response :success
-      assert_select "svg path[data-slot]", minimum: 3
+      editor = css_select(".editor[data-controller='badger-editor']").first
+      assert editor, "the compose surface is the editor"
+      assert_equal "ellipse", JSON.parse(editor["data-badger-editor-document-value"]).dig("shape", "kind")
+      rendering = JSON.parse(editor["data-badger-editor-rendering-value"])
+      assert_includes rendering["svg"], 'data-address="type[0]"'
+      assert_equal %w[container rule band interior follow type], rendering["construction"].map { |c| c["kind"] }
+      assert JSON.parse(editor["data-badger-editor-schema-value"]).key?("follow")
+      assert_select "button[form='badger-editor-save']", text: "Save"
+      assert_select "form#badger-editor-save[action=?]", badge_path(badge)
+      assert_select "ol.tree"
+      assert_select "svg.stage"
+      assert_select "template[data-badger-editor-target=templates] [data-field=number]"
+    end
+
+    test "the export surface lists the slots the files carry, and the document" do
+      badge = create_badge
+
+      get badge_path(badge, section: "export")
+
       assert_select "table.slots tbody tr", 2
       assert_select "details.document code", /kind: ellipse/
     end
@@ -65,7 +86,7 @@ module Badger
       get badge_path(badge, section: "export")
       assert_select "nav.sections a[aria-current=page]", text: "Export"
       assert_select "section.export a[href=?]", api_v1_badge_path(badge, format: :svg)
-      assert_select "table.slots", 0
+      assert_select ".editor", 0
       assert_select ".preview-column svg path[data-slot]", minimum: 3, message: "the drawing stays on every surface"
     end
 
@@ -83,6 +104,24 @@ module Badger
       end
       assert_response :unprocessable_content
       assert_select ".errors", /badge\.shape: needs radius/
+    end
+
+    # The editor saves the document whole, as JSON, and hears back.
+    test "the editor saves the document as JSON" do
+      badge = create_badge
+      document = badge.spec.deep_dup
+      document["shape"]["rx"] = 300
+
+      patch badge_path(badge), params: { badge: { spec: document } }, as: :json
+
+      assert_response :success
+      assert response.parsed_body["saved_at"]
+      assert_equal 300, badge.reload.spec["shape"]["rx"]
+
+      patch badge_path(badge), params: { badge: { spec: { "shape" => { "kind" => "circle" } } } }, as: :json
+      assert_response :unprocessable_content
+      assert_match(/needs radius/, response.parsed_body["error"])
+      assert_equal 300, badge.reload.spec["shape"]["rx"]
     end
 
     test "editing, saving and deleting" do

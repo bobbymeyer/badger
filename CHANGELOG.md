@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.4.0 — 2026-09-08
+
+The editor. Composing a badge was editing YAML in a textarea; it is now the drawing, with the construction lines as the controls.
+
+### Added
+
+- **The editor**, on the badge page's Compose surface: the document as a tree on three fields, the drawing on six, an inspector on three. Select a line of the tree or a piece of the drawing; the construction it was built on comes up in the accent, with handles: the two ends of a run's sweep, the edges of a band, the distance of a rule, the size of a shape, the chord a line was fitted to, the point a child was placed at. The inspector's fields are built from a schema the engine hands over, one field per parameter the core names, in the library's own markup. Every change re-renders through the server; nothing is saved until Save. `+ Region`, `+ Type`, `+ Child` and `+ Artwork` add starters that draw; Duplicate and Remove are with the entry. Construction, reference and grid layers toggle; Fit, 100% and 200% zoom, the wheel zooms about the pointer, a drag on empty ground pans.
+- **References.** The photograph a badge is redrawn from goes under the drawing, one per badge, kept in the badge's own table: PNG or JPEG, its size read from its header. Placed by dragging it on the drawing and scaling from its corner, or by numbers, at a strength set on a slider; the reference badges were measured in their photographs' own pixels, so the default is one unit a pixel, centred. The Dress and Export surfaces draw it under the badge too. `POST /badges/:id/reference` puts one on, `PATCH` places it, `DELETE` takes it off, `GET` serves it.
+- **Addresses.** Every piece the core renders carries the address of the document entry that made it (`type[0]`, `children[1].regions[0]`), in `Output#pieces`, `to_h` and the SVG's `data-address`. `Output#construction` returns the overlay geometry for the whole tree, visible or not; `Output#warnings` says what went wrong without failing, each about an address. `Container#construction` walks the tree beside `resolve`. `POST /badges/:id/render` answers all of it for a document without saving it; `PATCH /badges/:id` takes the document as JSON.
+
+### Changed
+
+- The badge page's Compose surface is the editor; the slots table and the document as text moved to Export. The Edit page keeps the YAML, for a document written by hand.
+- The API's badge JSON carries `address` on each piece, and `construction` and `warnings`; additive, so v1 stays v1.
+
 ## 0.3.0 — 2026-09-07
 
 A day of use. The engine on its-swiss 0.9 and Pandatone 0.3; the core is unchanged and moves with it.

@@ -233,6 +233,24 @@ components:
                   name: { type: [string, "null"] }
                   slot: { type: [integer, "null"] }
                   depth: { type: integer }
+                  address: { type: [string, "null"], description: "Where in the document the piece was written: \"\" for the root container, \"regions[0]\", \"children[1].type[0]\"." }
+            construction:
+              type: array
+              description: What an editor draws over the pieces, visible or not, one entry per document entry, each with its address and kind and the geometry it was built on in world space (path data as d, outer_d, inner_d or chord; a follow's sweep and run as points and visual degrees from the container's centroid; a placed child's anchor).
+              items:
+                type: object
+                properties:
+                  kind: { type: string, enum: [container, rule, band, interior, follow, type, illustration] }
+                  address: { type: [string, "null"] }
+                  name: { type: [string, "null"] }
+            warnings:
+              type: array
+              description: What went wrong without failing, each about one address; a justified run squeezed into its sweep, a run that overflows it.
+              items:
+                type: object
+                properties:
+                  address: { type: string }
+                  message: { type: string }
 
     ColorwaySummary:
       type: object

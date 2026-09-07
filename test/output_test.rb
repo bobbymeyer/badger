@@ -132,7 +132,7 @@ class OutputTest < Minitest::Test
 
   def test_metadata_hash_and_json
     h = Badger.render(badge).to_h
-    assert_equal %i[ink_bounds optical_center container anchors slots pieces], h.keys
+    assert_equal %i[ink_bounds optical_center container anchors slots pieces construction warnings], h.keys
     assert_equal 2, h[:slots].size
     assert_equal "--badger-slot-0", h[:slots].first[:property]
     assert_equal({ kind: :type, name: "H", slot: 1, depth: 1 }, h[:pieces].last.slice(:kind, :name, :slot, :depth))

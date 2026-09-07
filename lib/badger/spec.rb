@@ -59,6 +59,11 @@ module Badger
 
     def error(message, where) = raise(Error, "#{where}: #{message}")
 
+    # Where an entry is in the document, as an editor addresses it: the
+    # builder's "badge.children[0].type[1]" is "children[0].type[1]", and
+    # the root container is "".
+    def address(where) = where.delete_prefix("badge").delete_prefix(".")
+
     def fetch(doc, key, where, default = :required)
       return doc[key] if doc.key?(key)
       return default unless default == :required
@@ -87,7 +92,8 @@ module Badger
 
       shape = build_shape(fetch(doc, "shape", where), "#{where}.shape")
       container = Container.new(shape, visible: doc.fetch("visible", true), name: doc["name"],
-                                slot: slot_of(doc, where, :ground), tolerance: number(doc, "tolerance", where, 0.1))
+                                slot: slot_of(doc, where, :ground), tolerance: number(doc, "tolerance", where, 0.1),
+                                address: address(where))
       outer = @current
       @current = container
       regions = {}
@@ -136,14 +142,15 @@ module Badger
       case one_of(doc, "kind", where, REGIONS)
       when "rule"
         container.rule(number(doc, "distance", where), weight: number(doc, "weight", where, 2.0),
-                       visible: doc.fetch("visible", true), name: doc["name"], slot: slot_of(doc, where, :ink))
+                       visible: doc.fetch("visible", true), name: doc["name"], slot: slot_of(doc, where, :ink),
+                       address: address(where))
       when "band"
         container.band(outer: number(doc, "outer", where), inner: number(doc, "inner", where, nil),
                        width: number(doc, "width", where, nil), visible: doc.fetch("visible", false),
-                       name: doc["name"], slot: slot_of(doc, where, :field))
+                       name: doc["name"], slot: slot_of(doc, where, :field), address: address(where))
       when "interior"
         container.interior(inside: number(doc, "inside", where, 0.0), visible: doc.fetch("visible", false),
-                           name: doc["name"], slot: slot_of(doc, where, :field))
+                           name: doc["name"], slot: slot_of(doc, where, :field), address: address(where))
       end
     rescue ArgumentError => e
       error(e.message, where)
@@ -199,7 +206,7 @@ module Badger
       spine, start, length = sweep_of(baseline, doc, where)
       align = one_of(doc, "align", where, Follow::ALIGNMENTS.map(&:to_s), "center").to_sym
       follow = Follow.new(spine, run, tracking: number(doc, "tracking", where, 0.0), start: start, sweep: length, align: align)
-      container.attach(follow, name: doc["name"] || run.text, slot: slot_of(doc, where, :ink))
+      container.attach(follow, name: doc["name"] || run.text, slot: slot_of(doc, where, :ink), address: address(where))
     end
 
     def sweep_of(baseline, doc, where)
@@ -259,11 +266,12 @@ module Badger
         error("chord_at_x_per_glyph needs a stretch: { min:, max: } range", where) unless stretch
         fit = Fit.new(policy: :fill, axes: :both, stretch: stretch)
         interior = interior_named(container, regions, doc, where)
-        block = fit.glyphs_to_chords_at_x(run, interior, y: number(doc, "at", where, 0.0), inset: number(doc, "inset", where, 0.0),
+        y = number(doc, "at", where, 0.0)
+        block = fit.glyphs_to_chords_at_x(run, interior, y: y, inset: number(doc, "inset", where, 0.0),
                                           word_inset: number(doc, "word_inset", where, 0.0), fill: number(doc, "fill", where, 1.0),
                                           edge: one_of(doc, "edge", where, %w[center narrowest], "center").to_sym,
                                           tracking: number(doc, "tracking", where, 0.0))
-        container.attach(block, name: name, slot: slot)
+        container.attach(block, name: name, slot: slot, address: address(where), construction: chord_construction(interior, :y, y))
       else
         across = fit_kind == "chord_at_y" ? number(doc, "height", where, nil) : number(doc, "width", where, nil)
         fit = if across
@@ -282,8 +290,21 @@ module Badger
                   else
                     fit.to_chord_at_x(run, interior, at, width: across, **options)
                   end
-        container.attach(setting, name: name, slot: slot)
+        container.attach(setting, name: name, slot: slot, address: address(where),
+                         construction: chord_construction(interior, fit_kind == "chord_at_y" ? :y : :x, at))
       end
+    end
+
+    # The chord a fit was measured against, as path data in the container's
+    # space, for the editor to draw as the setting line it is.
+    def chord_construction(interior, axis, at)
+      chord = axis == :y ? interior.chord_at_y(at) : interior.chord_at_x(at)
+      return nil unless chord
+
+      f = Geometry.method(:fmt)
+      a, b = chord
+      d = axis == :y ? "M #{f.(a)} #{f.(at)} L #{f.(b)} #{f.(at)}" : "M #{f.(at)} #{f.(a)} L #{f.(at)} #{f.(b)}"
+      { chord: Geometry::Path.parse(d) }
     end
 
     def build_fixed(container, doc, where)
@@ -324,7 +345,7 @@ module Badger
       align = align.is_a?(Array) ? align : align.to_sym
       rotate = doc["rotate"]
       rotate = rotate.to_sym if rotate.is_a?(String)
-      container.place(child, at: locator, align: align, rotate: rotate, name: name, slot: slot)
+      container.place(child, at: locator, align: align, rotate: rotate, name: name, slot: slot, address: address(where))
     rescue ArgumentError => e
       error(e.message, where)
     end

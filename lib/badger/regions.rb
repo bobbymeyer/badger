@@ -7,13 +7,16 @@ module Badger
   # per region.
   module Regions
     class Base
-      attr_reader :container, :name, :slot
+      attr_reader :container, :name, :slot, :address
 
-      def initialize(container, visible:, name:, slot: :ink)
+      # address: where in a document this region was written, for an editor
+      # that has to find its way back from a piece to the entry that made it.
+      def initialize(container, visible:, name:, slot: :ink, address: nil)
         @container = container
         @visible = visible
         @name = name
         @slot = Slot.rank(slot)
+        @address = address
       end
 
       def visible? = @visible

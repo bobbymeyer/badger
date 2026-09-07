@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_07_100003) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_08_100001) do
   create_table "badger_badges", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "name", null: false
@@ -35,6 +35,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_07_100003) do
     t.datetime "taken_at", null: false
     t.datetime "updated_at", null: false
     t.index ["colorway_id"], name: "index_badger_palette_snapshots_on_colorway_id", unique: true
+  end
+
+  create_table "badger_references", force: :cascade do |t|
+    t.integer "badge_id", null: false
+    t.string "content_type", null: false
+    t.datetime "created_at", null: false
+    t.binary "data", null: false
+    t.integer "height", null: false
+    t.float "opacity", default: 0.5, null: false
+    t.float "scale", default: 1.0, null: false
+    t.datetime "updated_at", null: false
+    t.integer "width", null: false
+    t.float "x", default: 0.0, null: false
+    t.float "y", default: 0.0, null: false
+    t.index ["badge_id"], name: "index_badger_references_on_badge_id", unique: true
   end
 
   create_table "badger_slot_rules", force: :cascade do |t|
@@ -87,6 +102,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_07_100003) do
 
   add_foreign_key "badger_colorways", "badger_badges", column: "badge_id"
   add_foreign_key "badger_palette_snapshots", "badger_colorways", column: "colorway_id"
+  add_foreign_key "badger_references", "badger_badges", column: "badge_id"
   add_foreign_key "badger_slot_rules", "badger_colorways", column: "colorway_id"
   add_foreign_key "pandatone_palette_colors", "pandatone_colors", column: "color_id"
   add_foreign_key "pandatone_palette_colors", "pandatone_palettes", column: "palette_id"

@@ -4,5 +4,7 @@
 // live search on the index is its-swiss's, and the host registers that one.
 import { application } from "controllers/application"
 import DocumentController from "badger/controllers/document_controller"
+import EditorController from "badger/controllers/editor_controller"
 
 application.register("badger-document", DocumentController)
+application.register("badger-editor", EditorController)
