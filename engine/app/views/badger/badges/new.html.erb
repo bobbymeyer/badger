@@ -1,3 +1,68 @@
-<%= page_head "Compose a badge", lede: "A document: a shape, the regions it derives, type set into them. Every parameter is named for what it means." %>
+<%# The start: a composition on a shape, named, or a document pasted whole.
+    Each composition is a document the core renders, drawn here as the card,
+    so the card and the badge it gives cannot disagree. The button says what
+    the two choices add up to and opens the editor on the result. %>
+<% font = Badger::Fonts.names.first %>
+<%= page_head "Compose a badge",
+      lede: "Start from a composition, not a blank document. Each one is a container that derives regions and type set into them; everything on it can be changed once it is on the board." %>
 
-<%= render "form", badge: @badge, submit_label: "Compose", cancel_to: badges_path %>
+<%= its_swiss_form_with model: @badge, class: "form start", data: { controller: "badger-start" } do |form| %>
+  <%= render "its_swiss/shared/errors", record: @badge %>
+
+  <div class="measure">
+    <%= form.text_field :name, hint: "What this badge is called. Left blank, it takes the composition's name.",
+          placeholder: @composition.name, data: { badger_start_target: "name" } %>
+  </div>
+
+  <fieldset class="start__set">
+    <legend>Composition</legend>
+    <div class="compositions">
+      <% Badger::Compositions.all.each do |composition| %>
+        <label class="composition">
+          <input type="radio" name="badge[composition]" value="<%= composition.key %>" class="visually-hidden"
+                 <%= "checked" if composition == @composition %>
+                 data-action="badger-start#choose" data-name="<%= composition.name %>" data-shape="<%= composition.shape %>">
+          <figure class="figure" style="--ratio: <%= composition.ratio.round(3) %>"><%= composition_preview(composition, font: font) %></figure>
+          <span class="composition__name"><%= composition.name %></span>
+          <span class="composition__note micro quiet"><%= composition.note %></span>
+          <% if composition.after %><span class="composition__after micro quiet">After <%= composition.after %></span><% end %>
+        </label>
+      <% end %>
+    </div>
+  </fieldset>
+
+  <fieldset class="start__set">
+    <legend>Shape</legend>
+    <div class="shapes">
+      <% Badger::Compositions::SHAPES.each do |kind, label| %>
+        <label class="shape">
+          <input type="radio" name="badge[shape]" value="<%= kind %>" class="visually-hidden"
+                 <%= "checked" if kind == @shape %> data-action="badger-start#choose" data-label="<%= label.delete("…") %>">
+          <%= shape_glyph(kind) %>
+          <span class="micro"><%= label %></span>
+        </label>
+      <% end %>
+    </div>
+    <div class="field measure" data-badger-start-target="path" hidden>
+      <label for="badge_path">Path data</label>
+      <textarea name="badge[path]" id="badge_path" rows="3" spellcheck="false"><%= @path %></textarea>
+      <p class="hint">SVG path data for the container, closed, in the badge's own units. The regions and the type derive from it like from any shape.</p>
+    </div>
+  </fieldset>
+
+  <div class="run">
+    <%= form.submit "Compose a #{@composition.name.downcase} on a #{Badger::Compositions::SHAPES[@shape].delete('…').downcase}", data: { badger_start_target: "submit" } %>
+    <%= link_to "Cancel", badges_path, class: "button button--quiet" %>
+  </div>
+
+  <details class="start__paste">
+    <summary>Or paste a document</summary>
+    <div class="measure">
+      <%= form.text_area :spec_yaml, rows: 16, spellcheck: false, label: "The document",
+            data: { controller: "badger-document", action: "keydown->badger-document#indent" },
+            hint: "YAML, and it is taken instead of the composition when it is not empty. " \
+                  "A shape, the regions it derives, type set into them, artwork, children; every parameter is named for what it means. " \
+                  "Fonts on this host: #{Badger::Fonts.names.join(', ').presence || 'none'}." %>
+    </div>
+  </details>
+<% end %>

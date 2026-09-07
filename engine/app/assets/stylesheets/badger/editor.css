@@ -15,9 +15,53 @@
 .editor__stage { grid-column: span 6; }
 .editor__inspector { grid-column: span 3; min-width: 0; }
 
+/* The document view: the YAML on eight fields and a note on four, shown in
+   place of the three columns of the drawing view. */
+.editor__document { grid-column: span 8; }
+.editor__notes { grid-column: span 4; }
+
 @media (max-width: 64rem) {
-  .editor__tree, .editor__stage, .editor__inspector { grid-column: span 12; }
+  .editor__tree, .editor__stage, .editor__inspector, .editor__document, .editor__notes { grid-column: span 12; }
 }
+
+.editor:not(.editor--document) > .editor__document,
+.editor:not(.editor--document) > .editor__notes,
+.editor--document > .editor__tree,
+.editor--document > .editor__stage,
+.editor--document > .editor__inspector { display: none; }
+
+.editor__document textarea {
+  block-size: calc(var(--line) * 28);
+  font-family: var(--face-mono, ui-monospace, monospace);
+  font-size: var(--size-1);
+  line-height: var(--line);
+  white-space: pre;
+  overflow: auto;
+}
+
+/* --- The views ----------------------------------------------------------
+   Two words on one line, the current one in the weight: which view of the
+   document is shown, the way a filter register says which choice is on. */
+.editor__views {
+  grid-column: span 12;
+  display: flex;
+  gap: var(--space-2);
+  padding-block-end: calc(var(--line) - var(--rule-hair));
+  border-block-end: var(--rule-hair) solid var(--rule);
+}
+
+.editor__view {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  font: inherit;
+  line-height: var(--line);
+  color: var(--ink-quiet);
+  cursor: pointer;
+}
+
+.editor__view:hover { color: var(--ink); }
+.editor__view[aria-current] { color: var(--ink); font-weight: 700; }
 
 /* --- The tree ---------------------------------------------------------- */
 .tree {

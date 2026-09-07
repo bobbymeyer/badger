@@ -11,10 +11,11 @@ import { Inspector } from "badger/editor/inspector"
 // selection. Nothing is saved until Save.
 export default class extends Controller {
   static targets = ["tree", "svg", "grid", "referenceLayer", "pieces", "construction", "handles",
-                    "status", "inspector", "referencePanel", "templates", "saveState"]
+                    "status", "inspector", "referencePanel", "templates", "saveState", "yaml", "yamlError"]
   static values = {
     document: Object, rendering: Object, schema: Object, starters: Object, fonts: Array,
-    renderUrl: String, saveUrl: String, reference: Object, referenceUrl: String
+    renderUrl: String, saveUrl: String, reference: Object, referenceUrl: String,
+    yaml: String, select: String
   }
 
   connect() {
@@ -34,11 +35,15 @@ export default class extends Controller {
     this.dirty = false
     this.construction = []
     this.warnings = []
+    this.yaml = this.yamlValue
     this.apply(this.renderingValue)
     this.canvas.fit()
     this.renderTree()
-    this.select("")
+    this.select(this.selectValue || "")
     this.drawReference()
+    // opened on an entry, as a new badge is on its first run: the first
+    // thing to do is type its word
+    if (this.selectValue && this.selected === this.selectValue) this.inspectorTarget.querySelector("input[type=text]")?.select()
     this.leaving = (event) => { if (this.dirty) { event.preventDefault(); event.returnValue = "" } }
     window.addEventListener("beforeunload", this.leaving)
     this.resize = () => { if (this.canvas.mode === "fit") this.canvas.fit(); this.status(); this.redrawOverlays() }
@@ -55,6 +60,7 @@ export default class extends Controller {
   apply(rendering) {
     if (!rendering || !rendering.svg) return
     this.rendering = rendering
+    if (rendering.yaml !== undefined) this.yaml = rendering.yaml
     this.construction = rendering.construction || []
     this.warnings = rendering.warnings || []
     this.canvas.setPieces(rendering.svg)
@@ -69,23 +75,78 @@ export default class extends Controller {
   }
 
   async render() {
+    clearTimeout(this.renderTimer)
+    this.renderTimer = null
     const stamp = (this.renderStamp = (this.renderStamp || 0) + 1)
-    let response
-    try {
-      response = await fetch(this.renderUrlValue, {
-        method: "POST", headers: this.headers(), body: JSON.stringify({ document: this.doc.toJSON() })
-      })
-    } catch (e) {
-      this.inspector.showError("The drawing could not be asked for: the server did not answer.")
-      return
-    }
-    if (stamp !== this.renderStamp) return
-    const data = await response.json()
-    if (response.ok) {
+    const data = await this.ask({ document: this.doc.toJSON() })
+    if (stamp !== this.renderStamp || !data) return
+    if (data.ok) {
       this.apply(data)
       this.showInspector()
     } else {
       this.inspector.showError(data.error || "The document does not build.")
+    }
+  }
+
+  // The server's answer for a document, as JSON or as YAML, with `ok`
+  // saying whether it drew; null when the server did not answer.
+  async ask(body) {
+    let response
+    try {
+      response = await fetch(this.renderUrlValue, { method: "POST", headers: this.headers(), body: JSON.stringify(body) })
+    } catch (e) {
+      this.inspector.showError("The drawing could not be asked for: the server did not answer.")
+      return null
+    }
+    const data = await response.json()
+    data.ok = response.ok
+    return data
+  }
+
+  // --- the views -----------------------------------------------------------
+
+  // The drawing or the document. Showing the document fills it from the
+  // last render, after any render still owed; showing the drawing refits
+  // it, since it had no size while it was away.
+  async view(event) {
+    const view = event.currentTarget.dataset.view
+    for (const button of this.element.querySelectorAll(".editor__view")) {
+      if (button.dataset.view === view) button.setAttribute("aria-current", "page")
+      else button.removeAttribute("aria-current")
+    }
+    this.element.classList.toggle("editor--document", view === "document")
+    if (view === "document") {
+      if (this.renderTimer) await this.render()
+      if (this.yaml !== undefined) this.yamlTarget.value = this.yaml
+      this.yamlTarget.setSelectionRange(0, 0)
+      this.yamlTarget.scrollTop = 0
+      this.yamlTarget.focus({ preventScroll: true })
+    } else {
+      this.resize()
+    }
+  }
+
+  yamlInput() {
+    this.touched()
+    clearTimeout(this.yamlTimer)
+    this.yamlTimer = setTimeout(() => this.renderYaml(), 500)
+  }
+
+  // The document as typed, drawn: what builds replaces the document held,
+  // and what does not is refused under the text, where it was typed.
+  async renderYaml() {
+    const stamp = (this.renderStamp = (this.renderStamp || 0) + 1)
+    const data = await this.ask({ document_yaml: this.yamlTarget.value })
+    if (stamp !== this.renderStamp || !data) return
+    if (data.ok) {
+      this.doc = new Document(data.document)
+      this.yamlErrorTarget.hidden = true
+      this.apply(data)
+      this.renderTree()
+      this.select(this.doc.entry(this.selected) ? this.selected : "")
+    } else {
+      this.yamlErrorTarget.textContent = data.error || "The document does not build."
+      this.yamlErrorTarget.hidden = false
     }
   }
 

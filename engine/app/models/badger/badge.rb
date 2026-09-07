@@ -49,10 +49,15 @@ module Badger
     def spec_yaml=(text)
       @spec_yaml = text
       @yaml_error = nil
-      self.spec = YAML.safe_load(text.to_s, permitted_classes: [], aliases: false) || {}
+      parsed = YAML.safe_load(text.to_s, permitted_classes: [], aliases: false) || {}
+      @yaml_error = "the document is a #{parsed.class.name.downcase}, not a mapping of keys to values" unless parsed.is_a?(Hash)
+      self.spec = parsed.is_a?(Hash) ? parsed : {}
     rescue Psych::SyntaxError => e
       @yaml_error = e.message
     end
+
+    # Why the last YAML written did not parse, or nil.
+    attr_reader :yaml_error
 
     def container
       @container ||= Badger::Spec.build(spec || {})

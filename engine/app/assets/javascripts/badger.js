@@ -5,6 +5,8 @@
 import { application } from "controllers/application"
 import DocumentController from "badger/controllers/document_controller"
 import EditorController from "badger/controllers/editor_controller"
+import StartController from "badger/controllers/start_controller"
 
 application.register("badger-document", DocumentController)
 application.register("badger-editor", EditorController)
+application.register("badger-start", StartController)

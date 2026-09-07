@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.5.0 — 2026-09-08
+
+The start, and the document beside the drawing. A new badge began as YAML in a textarea; it now begins as a composition on a shape, and the YAML is the editor's second view of the same document.
+
+### Added
+
+- **The start.** "Compose a badge" is a name, six compositions and a row of shapes. A composition is a real document the core renders (Ring, Medallion, Lozenge stack, Wide word, Shield band, Plate), each with a placeholder word and the reference it is after; its card is the core's own render, so the card cannot drift from the badge. A shape goes under any composition, since regions derive from whatever the container is; a circle takes the composition's longer side so nothing placed inside it falls outside. The button says what the two choices add up to, the name is the composition's until one is typed, and a path shape asks for its data. Composed, the badge opens in the editor on its first run with its text selected, so the first thing done to it is typing its word. "Or paste a document" keeps the YAML field for a document brought from elsewhere. `Badger::Compositions` holds them; the cards are cached per font and version.
+- **The Document view.** The editor has two views of one badge, named on one line above it: the drawing, and the document as YAML. What is typed is drawn as it is typed, through `POST /badges/:id/render` with `document_yaml`; a document that does not build is refused under the text, naming where and why, and the drawing keeps the last one that did. A handle moved on the drawing is a number changed in the text. The render's answer carries the document both ways, as JSON and as YAML.
+
+### Changed
+
+- `POST /badges/:id/render` takes `document_yaml` as well as `document`, and answers with `document` and `yaml` beside the drawing.
+- A badge page opened with `?select=` opens the editor on that address.
+
 ## 0.4.0 — 2026-09-08
 
 The editor. Composing a badge was editing YAML in a textarea; it is now the drawing, with the construction lines as the controls.

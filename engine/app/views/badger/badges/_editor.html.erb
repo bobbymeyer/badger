@@ -1,4 +1,4 @@
-<%# locals: (badge:) %>
+<%# locals: (badge:, select: "") %>
 <%# The editor: the document as a tree, the drawing with its construction
     as the controls, and an inspector for the entry selected. Three fields,
     six, three. Everything it draws comes from the server's render of the
@@ -14,7 +14,17 @@
      data-badger-editor-render-url-value="<%= render_badge_path(badge) %>"
      data-badger-editor-save-url-value="<%= badge_path(badge) %>"
      data-badger-editor-reference-value="<%= (reference ? reference.slice(:x, :y, :scale, :opacity, :width, :height).merge(url: badge_reference_path(badge)) : {}).to_json %>"
-     data-badger-editor-reference-url-value="<%= badge_reference_path(badge) %>">
+     data-badger-editor-reference-url-value="<%= badge_reference_path(badge) %>"
+     data-badger-editor-yaml-value="<%= badge.spec_yaml %>"
+     data-badger-editor-select-value="<%= select %>">
+
+  <%# Two views of one document: the drawing, with the construction as the
+      controls, and the document as YAML, typed. Either changes the same
+      document; the other takes it up when it is shown. %>
+  <nav class="editor__views" aria-label="Views of the document">
+    <button type="button" class="editor__view" aria-current="page" data-action="badger-editor#view" data-view="drawing">Drawing</button>
+    <button type="button" class="editor__view" data-action="badger-editor#view" data-view="document">Document</button>
+  </nav>
 
   <%# The form the head's Save submits: the document it holds goes as JSON. %>
   <form id="badger-editor-save" method="post" action="<%= badge_path(badge) %>" data-action="submit->badger-editor#save" hidden>
@@ -122,5 +132,23 @@
       <p class="hint" data-field="hint"></p>
       <p class="field__error" data-field="error"></p>
     </template>
+  </aside>
+
+  <%# The document as YAML. What is typed is drawn as it is typed, and a
+      document that does not build is refused here, under the text, naming
+      where in the document and why; the drawing keeps the last one that did. %>
+  <div class="editor__document">
+    <div class="field">
+      <label for="badger-editor-yaml">The document</label>
+      <textarea id="badger-editor-yaml" rows="28" spellcheck="false" data-badger-editor-target="yaml"
+                data-controller="badger-document" data-action="keydown->badger-document#indent input->badger-editor#yamlInput"></textarea>
+      <p class="field__error" data-badger-editor-target="yamlError" hidden></p>
+      <p class="hint">YAML. A shape, the regions it derives, type set into them, artwork, children; every parameter is named for what it means. Tab indents.</p>
+    </div>
+  </div>
+  <aside class="editor__notes">
+    <h3>Views</h3>
+    <p class="hint">The drawing and the document are one badge. A handle moved on the drawing is a number changed here; a line typed here is drawn there. Neither is saved until Save.</p>
+    <p class="micro quiet">The document <%= link_to "as JSON", api_v1_badge_path(badge, format: :json) %></p>
   </aside>
 </div>
