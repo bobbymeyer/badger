@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.0 — 2026-09-07
+
+A day of use. The engine on its-swiss 0.9 and Pandatone 0.3; the core is unchanged and moves with it.
+
+### Changed
+
+- **The badge page is three surfaces.** Compose, Dress and Export, named under the title; the drawing and what is true of it stay in the left column, and stay put, while the surface beside them is worked. The colorway the drawing wears travels with the surfaces, and every dressing action returns to Dress wearing it. The files are a surface of their own; taking the badge away is in the head with editing it.
+- **Each thing said once.** A slot without a rule is bound to its rank, so the bindings table says only what is bound to something else. The sentence over every table is behind one mark, opened when it is asked for.
+- **One red per page.** The chosen filter is in the weight, in ink; the accent is the host's, for where you are on the site.
+
 ## 0.2.0 — 2026-09-07
 
 The engine, aligned with the tools beside it. The core is unchanged and moves with it.

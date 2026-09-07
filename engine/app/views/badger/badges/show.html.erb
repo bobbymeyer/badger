@@ -1,23 +1,25 @@
-<%= page_head @badge.name do %>
-  <%= link_to "Dress this badge", new_badge_colorway_path(@badge), class: "button button--primary" %>
+<%# One page, three surfaces: what the badge is made of, what it wears, how
+    it leaves. The drawing and what is true of it stay in the left column
+    on every one, and stay put; the surface is the right. What is done daily
+    is reached from the head, never by scrolling past what was done
+    yesterday. The colorway the drawing wears travels with the surfaces. %>
+<% sections = Badger::BadgesController::SECTIONS.map { |section|
+     [ section.humanize, badge_path(@badge, section: (section unless section == "compose"), colorway: @colorway), @section == section ]
+   } %>
+<%= page_head @badge.name, sections: sections do %>
   <%= link_to "Edit", edit_badge_path(@badge), class: "button" %>
   <%= button_to "Take away", badge_path(@badge), method: :delete, class: "button button--danger",
         form: { data: { turbo_confirm: "Take #{@badge.name} away?" } } %>
 <% end %>
 
-<figure class="preview-figure">
-  <%= badge_preview @badge, colorway: @colorway %>
-  <figcaption>
+<div class="preview-column stack">
+  <figure class="preview-figure">
+    <%= badge_preview @badge, colorway: @colorway %>
     <% if @colorway %>
-      Wearing <%= @colorway.palette_name %>.
-      <%= link_to "Undressed", badge_path(@badge) %>
-    <% else %>
-      Drawn in value, paper to ink. No palette has been chosen, and the badge is complete without one.
+      <figcaption>Wearing <%= @colorway.palette_name %>. <%= link_to "Undressed", badge_path(@badge, section: (@section unless @section == "compose")) %></figcaption>
     <% end %>
-  </figcaption>
-</figure>
+  </figure>
 
-<div class="detail stack">
   <dl class="pairs">
     <dt>Slots</dt>
     <dd><%= pluralize @badge.slot_count, "colour slot" %>, ranked from the ground</dd>
@@ -27,58 +29,11 @@
     <dd><%= @badge.output.pieces.size %></dd>
   </dl>
 
-  <table class="table slots">
-    <caption>The slots. A colorway resolves each rank against a palette; nothing here holds a colour of its own.</caption>
-    <thead>
-      <tr><th scope="col">Slot</th><th scope="col">Used by</th><% if @colorway %><th scope="col">Wearing</th><th scope="col">Binding</th><% end %></tr>
-    </thead>
-    <tbody>
-      <% @badge.slots.each do |slot| %>
-        <tr>
-          <td><%= slot_swatch slot.value %> <%= slot.name.humanize %> <span class="hint"><%= slot.property %></span></td>
-          <td><%= pluralize slot.pieces, "piece" %></td>
-          <% if @colorway %>
-            <td><% hex = @colorway.colors[slot.rank] %><%= slot_swatch hex, ruled: !@colorway.rule_for(slot.rank).binds_to_rank? %> <code><%= hex %></code></td>
-            <td>
-              <%= rule_in_words @colorway.rule_for(slot.rank) %>
-              <%= form_with url: badge_colorway_path(@badge, @colorway), method: :patch, class: "bind run" do |f| %>
-                <%= f.hidden_field :rank, value: slot.rank %>
-                <%= f.select :slot, (0...@colorway.snapshot.size).map { |i| [ "Colour #{i}", i ] }, {}, "aria-label": "Palette colour for #{slot.name}" %>
-                <%= f.hidden_field :kind, value: "assigned_slot" %>
-                <%= f.submit "Assign", class: "button button--quiet" %>
-              <% end %>
-            </td>
-          <% end %>
-        </tr>
-      <% end %>
-    </tbody>
-  </table>
+  <%= explain "Drawn in value, paper to ink. No palette is held by the badge: it is complete " \
+        "without one, and a colorway is worn over it. The ink is the drawing's extent in the " \
+        "document's units; the pieces are the paths it is made of." %>
+</div>
 
-  <section class="colorways stack">
-    <p class="hint">Colour arrives from Pandatone as a rule over a snapshot, never as a list of hexes.</p>
-
-    <% @badge.colorways.each do |colorway| %>
-      <article class="colorway stack">
-        <div class="run">
-          <%= link_to colorway.palette_name, badge_path(@badge, colorway: colorway) %>
-          <% colorway.colors.each { |hex| concat slot_swatch(hex) } %>
-          <% if colorway.invalidated? %><span class="hint">The badge has outgrown this palette. Kept, not deleted.</span><% end %>
-        </div>
-        <%= render "pandatone/dresser/actions", colorway: colorway,
-              drift_url: drift_badge_colorway_path(@badge, colorway),
-              remove_url: badge_colorway_path(@badge, colorway) %>
-      </article>
-    <% end %>
-  </section>
-
-  <details class="document">
-    <summary>The document</summary>
-    <pre><code><%= @badge.spec_yaml %></code></pre>
-  </details>
-
-  <p class="hint">
-    As a file: <%= link_to "SVG, unresolved", api_v1_badge_path(@badge, format: :svg) %>
-    <% if @colorway %> · <%= link_to "SVG, wearing #{@colorway.palette_name}", api_v1_badge_path(@badge, format: :svg, colorway: @colorway.id) %><% end %>
-    · <%= link_to "JSON", api_v1_badge_path(@badge, format: :json) %>. The API takes the host's token.
-  </p>
+<div class="detail stack">
+  <%= render "badger/badges/#{@section}", badge: @badge, colorway: @colorway %>
 </div>

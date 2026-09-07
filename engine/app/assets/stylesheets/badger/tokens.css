@@ -3,13 +3,13 @@
  * here is only what a badge lays out that a host could not know. Unlayered,
  * like a host's own stylesheets, so it wins wherever the two meet. */
 
-/* A badge beside what is true about it: the drawing takes three fields and
-   the description three. */
-main.grid > .preview-figure { --span: 3; }
-main.grid > .detail { --span: 3; }
+/* A badge beside what is true about it: the drawing takes two fields and
+   the surface beside it four, the proportion Stripeclub's page keeps. */
+main.grid > .preview-column { --span: 2; }
+main.grid > .detail { --span: 4; }
 
 @media (max-width: 40rem) {
-  main.grid > .preview-figure,
+  main.grid > .preview-column,
   main.grid > .detail { --span: 6; }
 }
 

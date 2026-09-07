@@ -33,11 +33,20 @@
 .preview-figure { margin: 0; }
 
 .preview-figure figcaption {
-  padding-block-start: var(--space-2);
+  padding-block-start: var(--line);
   color: var(--ink-quiet);
-  font-size: var(--size-1);
-  max-width: var(--measure);
 }
+
+/* The drawing and what is true of it stay where they are while the surface
+   beside them is worked. */
+.preview-column {
+  position: sticky;
+  top: var(--line);
+  align-self: start;
+}
+
+/* Files in a cell: a run of links, not a sentence. */
+.export td.run { display: flex; }
 
 /* --- Colorways ----------------------------------------------------------- */
 .colorway .run { align-items: center; }

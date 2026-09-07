@@ -1,0 +1,30 @@
+<%# locals: (badge:, colorway:) %>
+<%# How the badge leaves: as a drawing, in value and in each colorway, and as data. %>
+<section class="export stack">
+  <%= explain "The files are the API's, and the API takes the host's token. The SVG is the " \
+        "drawing in the document's units; the JSON is the document with what was derived " \
+        "from it, for a tool that wants to ask for a badge the way this one asks for a palette." %>
+
+  <table class="table">
+    <thead>
+      <tr><th scope="col">Drawing</th><th scope="col">Files</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>In value</td>
+        <td class="run">
+          <%= link_to "SVG", api_v1_badge_path(badge, format: :svg), class: "link-quiet" %>
+          <%= link_to "JSON", api_v1_badge_path(badge, format: :json), class: "link-quiet" %>
+        </td>
+      </tr>
+      <% badge.colorways.reject(&:invalidated?).each do |worn| %>
+        <tr>
+          <td>Wearing <%= worn.palette_name %></td>
+          <td class="run">
+            <%= link_to "SVG", api_v1_badge_path(badge, format: :svg, colorway: worn.id), class: "link-quiet" %>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</section>

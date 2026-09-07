@@ -9,7 +9,10 @@ gem "badger", path: ".."
 
 # Pandatone is not published to RubyGems; the engine takes it from its tag,
 # the way a host does. its-swiss comes from RubyGems through the gemspec.
-gem "pandatone", github: "bobbymeyer/pandatone", tag: "v0.2.0"
+# Pandatone 0.3 and its-swiss 0.9 from their branches until they are tagged
+# and published; then the tag and the gemspec are the pins again.
+gem "pandatone", github: "bobbymeyer/pandatone", branch: "say-it-once"
+gem "its-swiss", github: "bobbymeyer/its-swiss", branch: "say-it-once"
 
 gem "puma"
 gem "sqlite3", ">= 2.1"
