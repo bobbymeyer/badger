@@ -11,7 +11,7 @@ gem "badger", path: ".."
 # engine develops against the branches that carry them. Delete these lines
 # when they are.
 gem "its-swiss", github: "bobbymeyer/its-swiss", branch: "main"
-gem "pandatone", github: "bobbymeyer/pandatone", branch: "claude/ui-alignment"
+gem "pandatone", github: "bobbymeyer/pandatone", branch: "main"
 
 gem "puma"
 gem "sqlite3", ">= 2.1"
