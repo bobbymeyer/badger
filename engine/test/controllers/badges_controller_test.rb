@@ -160,6 +160,14 @@ module Badger
 
       assert_select ".editor__views .editor__view[data-view=drawing][aria-current]"
       assert_select ".editor__views .editor__view[data-view=document]"
+      assert_select ".editor__views .editor__step[data-badger-editor-target=undo][disabled]"
+      assert_select ".editor__views .editor__step[data-badger-editor-target=redo][disabled]"
+      assert_select ".tree__adders .tree__into", text: "Add to Badge"
+      assert_select ".tree__adders details.adder summary", text: "+ Region"
+      assert_select ".tree__adders .adder__menu button[data-kind=band]"
+      assert_select ".tree__adders .adder__menu button[data-kind=follow]"
+      assert_select ".tree__adders button[data-kind=child]"
+      assert_select "template [data-field=nine] .nine", 1
       assert_select "textarea#badger-editor-yaml[data-badger-editor-target=yaml][data-controller='badger-document']"
       editor = css_select(".editor").first
       assert_match(/kind: ellipse/, editor["data-badger-editor-yaml-value"])
@@ -183,10 +191,13 @@ module Badger
       assert_equal 300, badge.reload.spec["shape"]["rx"]
     end
 
-    test "editing, saving and deleting" do
+    test "renaming, saving and deleting" do
       badge = create_badge
       get edit_badge_path(badge)
       assert_response :success
+      assert_select "h1", text: "Rename Stockholm"
+      assert_select "input[name='badge[name]']"
+      assert_select "textarea[name='badge[spec_yaml]']", 0, "the document is edited on the badge page, not here"
 
       patch badge_path(badge), params: { badge: { name: "Stockholm Stadion" } }
       assert_redirected_to badge_path(badge)

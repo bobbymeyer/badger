@@ -298,3 +298,93 @@
 .inspector__empty { color: var(--ink-quiet); }
 
 form.inline { display: inline; }
+
+/* --- The hand -------------------------------------------------------------
+   Anything visible can be taken hold of, and says so: a piece lifts under
+   the pointer, a handle grows, and each handle's cursor says which way it
+   goes. While the server draws, the stage says so quietly. */
+.stage__pieces [data-address]:hover { stroke: var(--accent); stroke-width: 1px; vector-effect: non-scaling-stroke; }
+.stage__handles circle:hover, .stage__handles rect:hover, .stage__handles .is-lit { stroke-width: 3px; fill: var(--accent); }
+.stage__handles .handle--turn { cursor: grab; }
+.stage__handles .handle--ew { cursor: ew-resize; }
+.stage__handles .handle--ns { cursor: ns-resize; }
+.stage__handles .handle--move { cursor: move; }
+.stage__handles .handle--radial { cursor: crosshair; }
+.stage--dragging, .stage--dragging * { cursor: grabbing !important; }
+.stage--space { cursor: grab; }
+.stage--space .stage__pieces, .stage--space .stage__construction, .stage--space .stage__handles { pointer-events: none; }
+.stage--rendering { box-shadow: inset 0 0 0 var(--rule-hair) var(--rule), inset 0 2px 0 var(--accent); }
+
+/* --- History ------------------------------------------------------------ */
+.editor__history { margin-inline-start: auto; gap: var(--space-2); }
+.editor__step {
+  border: 0; padding: 0; background: transparent; font: inherit; line-height: var(--line);
+  color: var(--ink-quiet); cursor: pointer; text-decoration: underline; text-underline-offset: 0.2em;
+}
+.editor__step:hover { color: var(--ink); }
+.editor__step:disabled { color: var(--rule-strong, var(--ink-quiet)); text-decoration: none; cursor: default; opacity: 0.6; }
+.tree__undo {
+  border: 0; padding: 0; background: transparent; font: inherit; color: var(--accent); cursor: pointer;
+  text-decoration: underline; text-underline-offset: 0.2em;
+}
+
+/* A row whose entry warns carries the mark in its note. */
+.tree__row--warned .tree__meta::before { content: "● "; color: var(--accent); }
+
+/* --- The adders --------------------------------------------------------- */
+.tree__into { margin: 0; }
+.adder { position: relative; }
+.adder > summary { list-style: none; }
+.adder > summary::-webkit-details-marker { display: none; }
+.adder__menu {
+  position: absolute; z-index: 2; inset-inline-start: 0; inset-block-start: 100%;
+  min-inline-size: 16rem; padding: var(--space-1) 0;
+  background: var(--paper); box-shadow: inset 0 0 0 var(--rule-hair) var(--ink), 0 4px 12px rgb(0 0 0 / 0.08);
+}
+.adder__menu button {
+  display: block; inline-size: 100%; text-align: start; border: 0; background: transparent; cursor: pointer;
+  padding: 0 var(--space-2); font-family: var(--face-200), var(--font-family); font-size: var(--size-1); line-height: var(--line); color: var(--ink);
+}
+.adder__menu button:hover { background: var(--paper-shaded); }
+
+/* --- The panel's groups -------------------------------------------------- */
+.inspector__head { display: flex; flex-direction: column; }
+.inspector__mode select {
+  border: 0; border-bottom: var(--rule-hair) solid var(--rule); background: transparent; padding: 0;
+  font-family: var(--face-200), var(--font-family); font-size: var(--size-1); line-height: var(--line); color: var(--ink-quiet); cursor: pointer;
+}
+.inspector__group { margin-block-start: var(--line); }
+.inspector__group-name {
+  margin: 0; font-family: var(--face-200), var(--font-family); font-size: var(--size-1); line-height: var(--line);
+  font-weight: 700; color: var(--ink-quiet); text-transform: uppercase; letter-spacing: 0.06em;
+  border-block-end: var(--rule-hair) solid var(--rule);
+}
+.inspector__group .inspector__fields { margin-block-start: var(--space-1); }
+.inspector__more > summary { cursor: pointer; color: var(--ink-quiet); font-size: var(--size-1); line-height: var(--line); }
+.inspector__more > summary:hover { color: var(--ink); }
+.inspector__note { margin: 0; }
+
+/* A field that is a handle's number lights up when the handle is held. */
+.inspector__handled.is-lit label { color: var(--accent); }
+
+/* A number's label is a slider without a track. */
+.inspector__fields label.scrub { cursor: ew-resize; user-select: none; }
+.inspector__fields label.scrub.is-scrubbing { color: var(--accent); }
+
+/* Nine points, one filled: which of the child's reference points lands on
+   the locator. */
+.nine {
+  display: grid; grid-template-columns: repeat(3, var(--line)); grid-auto-rows: var(--line);
+  gap: 2px; margin-block-start: var(--space-1);
+}
+.nine__point {
+  border: 0; padding: 0; background: var(--paper-shaded); cursor: pointer; position: relative;
+  box-shadow: inset 0 0 0 var(--rule-hair) var(--rule);
+}
+.nine__point::after {
+  content: ""; position: absolute; inset: 50% auto auto 50%; inline-size: 6px; block-size: 6px;
+  transform: translate(-50%, -50%); background: var(--ink-quiet);
+}
+.nine__point:hover::after { background: var(--ink); }
+.nine__point[aria-pressed="true"] { background: var(--ink); box-shadow: none; }
+.nine__point[aria-pressed="true"]::after { background: var(--paper); }

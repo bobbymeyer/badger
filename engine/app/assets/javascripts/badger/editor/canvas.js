@@ -152,6 +152,8 @@ export class Canvas {
 
   // --- handles -------------------------------------------------------------
 
+  // Each handle says what it drags — as its cursor, and as a tooltip that
+  // names the number it stands for — and carries its label beside it.
   setHandles(handles) {
     const layer = this.layers.handles
     layer.replaceChildren()
@@ -160,13 +162,62 @@ export class Canvas {
       const el = h.shape === "square"
         ? Canvas.svg("rect", { x: h.x - 4 * u, y: h.y - 4 * u, width: 8 * u, height: 8 * u, "data-handle": h.id })
         : Canvas.svg("circle", { cx: h.x, cy: h.y, r: 5 * u, "data-handle": h.id })
+      el.classList.add(`handle--${Canvas.cursorFor(h.id)}`)
+      const title = Canvas.svg("title")
+      title.textContent = h.title || h.label || h.id
+      el.append(title)
       layer.append(el)
       if (h.label) {
-        const text = Canvas.svg("text", { x: h.x + 8 * u, y: h.y - 8 * u, class: "handle--label", style: `font-size: ${11 * u}px` })
+        const text = Canvas.svg("text", { x: h.x + 8 * u, y: h.y - 8 * u, class: "handle--label", style: `font-size: ${11 * u}px`, "data-handle-label": h.id })
         text.textContent = h.label
         layer.append(text)
       }
     }
+  }
+
+  static cursorFor(id) {
+    if (id.startsWith("sweep")) return "turn"
+    if (id === "shape:x") return "ew"
+    if (id === "shape:y") return "ns"
+    if (id === "anchor" || id === "reference:move") return "move"
+    if (id === "chord:at") return "ns"
+    return "radial"
+  }
+
+  // A handle moved to where the pointer put it, before the drawing catches
+  // up: the hand should never wait on the server.
+  moveHandle(id, point, label) {
+    const u = this.unitsPerPixel()
+    const el = this.layers.handles.querySelector(`[data-handle="${CSS.escape(id)}"]`)
+    if (!el) return
+    if (el.tagName === "rect") { el.setAttribute("x", point.x - 4 * u); el.setAttribute("y", point.y - 4 * u) } else { el.setAttribute("cx", point.x); el.setAttribute("cy", point.y) }
+    const text = this.layers.handles.querySelector(`[data-handle-label="${CSS.escape(id)}"]`)
+    if (text) {
+      text.setAttribute("x", point.x + 8 * u)
+      text.setAttribute("y", point.y - 8 * u)
+      if (label !== undefined) text.textContent = label
+    }
+  }
+
+  // The handle a field is the number of, lit while the pointer is over the
+  // field; none, when it leaves.
+  lightHandles(ids) {
+    for (const el of this.layers.handles.querySelectorAll("[data-handle]")) {
+      el.classList.toggle("is-lit", ids.includes(el.dataset.handle))
+    }
+  }
+
+  // The point on a path nearest a point, as a fraction of the path's length.
+  static fractionAlong(d, point, samples = 720) {
+    const path = Canvas.svg("path", { d })
+    const total = path.getTotalLength()
+    let best = { fraction: 0, dist: Infinity }
+    for (let i = 0; i < samples; i++) {
+      const p = path.getPointAtLength((total * i) / samples)
+      const dist = Math.hypot(p.x - point.x, p.y - point.y)
+      if (dist < best.dist) best = { fraction: i / samples, dist }
+    }
+    return best.fraction
   }
 
   // --- the reference and the grid -------------------------------------------
