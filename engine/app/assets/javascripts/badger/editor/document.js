@@ -128,21 +128,95 @@ export class Document {
     return out
   }
 
-  // What the tree says of an entry: a label and a quiet note beside it.
+  // What the tree says of an entry: a label and, beside it, what it is and
+  // where it goes in plain words — "over the top of ring", "the chord at
+  // y −311", "24 units at the centroid" — rather than the model's keys.
   describe({ address, kind, entry }) {
     const shape = entry.shape?.kind?.replace(/_/g, " ")
+    const n = (v) => (typeof v === "number" ? Document.number(v) : v)
     switch (kind) {
-      case "container": return { label: entry.name || "Badge", meta: shape || "" }
-      case "child": return { label: entry.name || "child", meta: shape || "" }
-      case "rule": return { label: entry.name || "rule", meta: `rule ${entry.distance ?? 0}` }
-      case "band": return { label: entry.name || "band", meta: `band ${entry.width ?? ""} · ${entry.slot || "field"}` }
-      case "interior": return { label: entry.name || "field", meta: `interior ${entry.inside ?? 0}` }
-      case "follow": return { label: entry.name || entry.text || "text", meta: `${entry.region || "?"} · ${typeof entry.sweep === "string" ? entry.sweep : "sweep"}` }
-      case "fit": return { label: entry.name || entry.text || "text", meta: `fit · ${(entry.fit || "chord_at_y").replace(/_/g, " ")}` }
-      case "fixed": return { label: entry.name || entry.text || "text", meta: `fixed ${entry.size ?? ""}` }
-      case "illustration": return { label: entry.name || "artwork", meta: "artwork" }
+      case "container": return { label: entry.name || "Badge", meta: Document.shapeWords(entry.shape) }
+      case "child": return { label: entry.name || "child", meta: `${Document.shapeWords(entry.shape)}, ${Document.placeWords(entry.at)}` }
+      case "rule": {
+        const d = entry.distance ?? 0
+        return { label: entry.name || "rule", meta: d === 0 ? "rule at the edge" : `rule, ${n(Math.abs(d))} ${d < 0 ? "in" : "out"}` }
+      }
+      case "band": return { label: entry.name || "band", meta: `band, ${n(entry.width ?? "")} wide` }
+      case "interior": return { label: entry.name || "field", meta: entry.inside ? `the field, inset ${n(Math.abs(entry.inside))}` : "the field" }
+      case "follow": return { label: entry.name || entry.text || "text", meta: `${Document.sweepWords(entry.sweep, entry.reversed)} ${entry.region || "?"}` }
+      case "fit": return { label: entry.name || entry.text || "text", meta: Document.fitWords(entry) }
+      case "fixed": return { label: entry.name || entry.text || "text", meta: `${n(entry.size ?? "")} units, ${Document.placeWords(entry.at)}` }
+      case "illustration": return { label: entry.name || "artwork", meta: `artwork, ${Document.placeWords(entry.at)}` }
       default: return { label: address, meta: "" }
     }
+  }
+
+  static number(v) {
+    return Number.isInteger(v) ? String(v) : v.toFixed(1).replace(/\.0$/, "")
+  }
+
+  static shapeWords(shape) {
+    if (!shape) return ""
+    const kind = shape.kind?.replace(/_/g, " ") || "shape"
+    if (shape.kind === "circle") return `circle, r ${Document.number(shape.radius ?? 0)}`
+    if (shape.kind === "ellipse") return `ellipse, ${Document.number((shape.rx ?? 0) * 2)} × ${Document.number((shape.ry ?? 0) * 2)}`
+    if (shape.width && shape.height) return `${kind}, ${Document.number(shape.width)} × ${Document.number(shape.height)}`
+    return kind
+  }
+
+  static placeWords(at) {
+    if (!at || at === "centroid") return "at the centroid"
+    if (at.polar) return `at ${Document.number(at.polar.angle ?? 0)}°, ${Document.number(at.polar.radius ?? 0)} out`
+    if (at.axial) return `at ${Math.round((at.axial[0] ?? 0.5) * 100)}% across, ${Math.round((at.axial[1] ?? 0.5) * 100)}% down`
+    if (at.on_path) return `${Math.round((at.on_path.fraction ?? 0) * 100)}% along the path`
+    return "placed"
+  }
+
+  static sweepWords(sweep, reversed) {
+    if (sweep === undefined || sweep === "top") return "over the top of"
+    if (sweep === "bottom") return "under the bottom of"
+    if (sweep === "full") return "all the way round"
+    if (sweep && sweep.from !== undefined) {
+      const { centre, span } = Document.sweepCentreSpan(sweep, reversed)
+      return `${Math.round(span)}° about ${Math.round(centre)}° on`
+    }
+    if (sweep && sweep.start !== undefined) return `from ${Math.round(sweep.start * 100)}% along`
+    return "on"
+  }
+
+  static fitWords(entry) {
+    const region = entry.region ? ` in ${entry.region}` : ""
+    switch (entry.fit || "chord_at_y") {
+      case "chord_at_y": return `the chord at y ${Document.number(entry.at ?? 0)}${region}`
+      case "chord_at_x": return `the chord at x ${Document.number(entry.at ?? 0)}${region}`
+      case "chord_at_x_per_glyph": return `each letter its chord${region}`
+      case "box": return `a box${entry.height ? `, ${Document.number(entry.height)} tall` : ""}${entry.width ? `, ${Document.number(entry.width)} wide` : ""}`
+      default: return "fitted"
+    }
+  }
+
+  // A sweep given as two angles, as the centre it is about and the span
+  // it covers. A run goes clockwise on the screen from `from` to `to`, and
+  // the other way when reversed, so the same two angles are two sweeps.
+  static sweepCentreSpan(sweep, reversed) {
+    const mod = (v) => ((v % 360) + 360) % 360
+    const from = Number(sweep.from ?? 0)
+    const to = Number(sweep.to ?? 0)
+    const span = reversed ? mod(from - to) : mod(to - from)
+    const centre = mod(reversed ? from - span / 2 : from + span / 2)
+    return { centre, span: span === 0 && from !== to ? 360 : span }
+  }
+
+  static sweepFromCentreSpan(centre, span, reversed) {
+    const mod = (v) => ((v % 360) + 360) % 360
+    const half = span / 2
+    return reversed ? { from: mod(centre + half), to: mod(centre - half) } : { from: mod(centre - half), to: mod(centre + half) }
+  }
+
+  // Which container an address is in, as its tree label.
+  containerLabel(address) {
+    const container = this.entry(address) || this.spec
+    return container.name || (address ? "child" : "Badge")
   }
 
   // The names of a container's regions of one kind, for the fields that

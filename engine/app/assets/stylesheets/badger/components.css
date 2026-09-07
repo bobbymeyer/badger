@@ -59,3 +59,99 @@
   overflow: auto;
   font-size: var(--size-1);
 }
+
+/* --- The start ----------------------------------------------------------
+   A composition on a shape. The compositions are cards on the page's own
+   fields, two each; the shapes are a row of glyphs. Both are radios, and
+   the one chosen is the box drawn in ink: the choice is the only thing on
+   the page that is boxed, so the box is the signal. */
+/* The library's form is a column at the measure; the start is the page's
+   whole width, with the name field and the pasted document at the measure
+   on their own. */
+.form.start { max-width: none; align-items: stretch; }
+
+.start__set {
+  border: 0;
+  margin: 0 0 var(--line);
+  padding: 0;
+  min-width: 0;
+}
+
+.start__set > legend {
+  padding: 0;
+  margin-block-end: var(--line);
+  font-family: var(--face-200), var(--font-family);
+  font-size: var(--size-1);
+  line-height: var(--line);
+  font-weight: 700;
+  color: var(--ink-quiet);
+}
+
+.compositions {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: var(--line) var(--gutter);
+}
+
+@media (max-width: 64rem) {
+  .compositions { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 40rem) {
+  .compositions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.composition {
+  display: block;
+  min-width: 0;
+  inline-size: auto;
+  padding: calc(var(--line) - var(--rule-hair)) var(--space-3);
+  box-shadow: inset 0 0 0 var(--rule-hair) var(--rule);
+  cursor: pointer;
+}
+
+.composition:hover { box-shadow: inset 0 0 0 var(--rule-hair) var(--ink-quiet); }
+.composition:has(input:checked) { box-shadow: inset 0 0 0 2px var(--ink); }
+.composition:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* The pictures are one height across the row, so the names line up under
+   them whatever a composition's proportion. */
+.composition .figure { margin-block: 0 var(--line); }
+.composition .figure > svg { block-size: calc(var(--line) * 8); object-fit: contain; object-position: center; }
+.composition__name { display: block; font-weight: 700; }
+.composition__note, .composition__after { display: block; }
+
+.shapes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-block-end: var(--line);
+}
+
+.shape {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  min-inline-size: 6rem;
+  padding: var(--space-1) var(--space-2) 0;
+  box-shadow: inset 0 0 0 var(--rule-hair) var(--rule);
+  cursor: pointer;
+}
+
+.shape:hover { box-shadow: inset 0 0 0 var(--rule-hair) var(--ink-quiet); }
+.shape:has(input:checked) { box-shadow: inset 0 0 0 2px var(--ink); }
+.shape:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.shape__glyph {
+  display: block;
+  inline-size: 60px;
+  block-size: var(--line-2);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+}
+
+.start__paste { margin-block-start: var(--line-2); }
+.start__paste > summary { cursor: pointer; color: var(--ink-quiet); }
+.start__paste > summary:hover { color: var(--ink); }
+.start__paste[open] > summary { margin-block-end: var(--line); color: var(--ink); }

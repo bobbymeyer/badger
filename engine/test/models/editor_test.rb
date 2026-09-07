@@ -23,6 +23,24 @@ module Badger
       end
     end
 
+    # The panel is four groups; every field is in one, and the ones behind
+    # More are marked. A field that is a handle's number says which handle.
+    test "every field is in a group, and the handles are named" do
+      Editor.schema.each do |kind, fields|
+        fields.each do |field|
+          assert_includes Editor::GROUPS, field[:group], "#{kind}.#{field[:key]} has no group"
+        end
+      end
+      band = Editor.schema["band"]
+      assert_equal "band:outer", band.find { |f| f[:key] == "outer" }[:handle]
+      assert_equal "band:inner", band.find { |f| f[:key] == "width" }[:handle]
+      follow = Editor.schema["follow"]
+      assert_equal "sweep:from sweep:to", follow.find { |f| f[:key] == "sweep" }[:handle]
+      assert follow.find { |f| f[:key] == "reversed" }[:more], "reversed waits behind More"
+      fill = Editor.schema["fit"].find { |f| f[:key] == "fill" }
+      assert_equal 100, fill[:factor], "a fraction is shown as a percentage"
+    end
+
     test "the schema's choices are the core's" do
       shape = Editor.schema["container"].find { |f| f[:key] == "shape.kind" }
       assert_equal Badger::Spec::SHAPES, shape[:options].map(&:first)

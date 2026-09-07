@@ -90,20 +90,87 @@ module Badger
       assert_select ".preview-column svg path[data-slot]", minimum: 3, message: "the drawing stays on every surface"
     end
 
-    test "composing a badge from the editor, and refusing a document that does not build" do
+    # The start: a composition on a shape, each composition drawn by the
+    # core, or a document pasted whole. Composed, the badge opens in the
+    # editor on its first run.
+    test "the start offers the compositions and the shapes" do
       get new_badge_path
-      assert_select "textarea[name='badge[spec_yaml]']", /shape:/
 
+      assert_response :success
+      assert_select "form.start[data-controller='badger-start']"
+      assert_select ".compositions .composition input[type=radio][name='badge[composition]']", Badger::Compositions.all.size
+      assert_select ".composition input[value=ring][checked]"
+      assert_select ".composition .figure > svg", Badger::Compositions.all.size, "every composition is drawn"
+      assert_select ".shapes .shape input[type=radio][name='badge[shape]']", Badger::Compositions::SHAPES.size
+      assert_select ".shape input[value=superellipse][checked]"
+      assert_select ".shape svg.shape__glyph path", Badger::Compositions::SHAPES.size
+      assert_select "button[type=submit]", text: "Compose a ring on a superellipse"
+      assert_select "details.start__paste summary", text: "Or paste a document"
+      assert_select "textarea[name='badge[spec_yaml]']"
+    end
+
+    test "composing from a composition on a shape opens the editor on the first run" do
       assert_difference "Badge.count", 1 do
-        post badges_path, params: { badge: { name: "Kiruna", spec_yaml: "shape: { kind: circle, radius: 80 }\nregions: [ { kind: rule, distance: 0, weight: 4 } ]\n" } }
+        post badges_path, params: { badge: { name: "", composition: "stack", shape: "circle" } }
       end
-      assert_redirected_to badge_path(Badge.last)
+      badge = Badge.last
+      assert_redirected_to badge_path(badge, select: "type[0]")
+      assert_equal "Lozenge stack", badge.name
+      assert_equal "circle", badge.spec.dig("shape", "kind")
+      assert_equal "chord_at_y", badge.spec.dig("type", 0, "fit")
+
+      follow_redirect!
+      assert_select ".editor[data-badger-editor-select-value='type[0]']"
+    end
+
+    test "composing from a pasted document, and refusing one that does not build" do
+      assert_difference "Badge.count", 1 do
+        post badges_path, params: { badge: { name: "Kiruna", composition: "ring", shape: "circle",
+          spec_yaml: "shape: { kind: circle, radius: 80 }\nregions: [ { kind: rule, distance: 0, weight: 4 } ]\n" } }
+      end
+      assert_equal "circle", Badge.last.spec.dig("shape", "kind")
+      assert_equal 80, Badge.last.spec.dig("shape", "radius"), "the pasted document is taken over the composition"
 
       assert_no_difference "Badge.count" do
         post badges_path, params: { badge: { name: "Broken", spec_yaml: "shape: { kind: circle }\n" } }
       end
       assert_response :unprocessable_content
       assert_select ".errors", /badge\.shape: needs radius/
+      assert_select ".composition input[value=ring][checked]", 1, "the start is shown again, with its choices"
+    end
+
+    test "a path shape needs its path data" do
+      assert_no_difference "Badge.count" do
+        post badges_path, params: { badge: { name: "Traced", composition: "plate", shape: "path", path: "" } }
+      end
+      assert_response :unprocessable_content
+      assert_select ".errors", /path data/
+
+      post badges_path, params: { badge: { name: "Traced", composition: "plate", shape: "path", path: "M -280 -160 L 280 -160 L 280 160 L -280 160 Z" } }
+      assert_redirected_to badge_path(Badge.last, select: "type[0]")
+      assert_equal "path", Badge.last.spec.dig("shape", "kind")
+    end
+
+    # The document is the editor's second view: the same badge as YAML,
+    # handed to the page with the drawing.
+    test "the editor carries the document as YAML for its document view" do
+      badge = create_badge
+
+      get badge_path(badge)
+
+      assert_select ".editor__views .editor__view[data-view=drawing][aria-current]"
+      assert_select ".editor__views .editor__view[data-view=document]"
+      assert_select ".editor__views .editor__step[data-badger-editor-target=undo][disabled]"
+      assert_select ".editor__views .editor__step[data-badger-editor-target=redo][disabled]"
+      assert_select ".tree__adders .tree__into", text: "Add to Badge"
+      assert_select ".tree__adders details.adder summary", text: "+ Region"
+      assert_select ".tree__adders .adder__menu button[data-kind=band]"
+      assert_select ".tree__adders .adder__menu button[data-kind=follow]"
+      assert_select ".tree__adders button[data-kind=child]"
+      assert_select "template [data-field=nine] .nine", 1
+      assert_select "textarea#badger-editor-yaml[data-badger-editor-target=yaml][data-controller='badger-document']"
+      editor = css_select(".editor").first
+      assert_match(/kind: ellipse/, editor["data-badger-editor-yaml-value"])
     end
 
     # The editor saves the document whole, as JSON, and hears back.
@@ -124,10 +191,13 @@ module Badger
       assert_equal 300, badge.reload.spec["shape"]["rx"]
     end
 
-    test "editing, saving and deleting" do
+    test "renaming, saving and deleting" do
       badge = create_badge
       get edit_badge_path(badge)
       assert_response :success
+      assert_select "h1", text: "Rename Stockholm"
+      assert_select "input[name='badge[name]']"
+      assert_select "textarea[name='badge[spec_yaml]']", 0, "the document is edited on the badge page, not here"
 
       patch badge_path(badge), params: { badge: { name: "Stockholm Stadion" } }
       assert_redirected_to badge_path(badge)

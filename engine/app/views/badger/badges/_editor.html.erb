@@ -1,4 +1,4 @@
-<%# locals: (badge:) %>
+<%# locals: (badge:, select: "") %>
 <%# The editor: the document as a tree, the drawing with its construction
     as the controls, and an inspector for the entry selected. Three fields,
     six, three. Everything it draws comes from the server's render of the
@@ -14,7 +14,22 @@
      data-badger-editor-render-url-value="<%= render_badge_path(badge) %>"
      data-badger-editor-save-url-value="<%= badge_path(badge) %>"
      data-badger-editor-reference-value="<%= (reference ? reference.slice(:x, :y, :scale, :opacity, :width, :height).merge(url: badge_reference_path(badge)) : {}).to_json %>"
-     data-badger-editor-reference-url-value="<%= badge_reference_path(badge) %>">
+     data-badger-editor-reference-url-value="<%= badge_reference_path(badge) %>"
+     data-badger-editor-yaml-value="<%= badge.spec_yaml %>"
+     data-badger-editor-select-value="<%= select %>">
+
+  <%# Two views of one document: the drawing, with the construction as the
+      controls, and the document as YAML, typed. Either changes the same
+      document; the other takes it up when it is shown. %>
+  <nav class="editor__views" aria-label="Views of the document">
+    <button type="button" class="editor__view" aria-current="page" data-action="badger-editor#view" data-view="drawing">Drawing</button>
+    <button type="button" class="editor__view" data-action="badger-editor#view" data-view="document">Document</button>
+    <%# Every change is one history: a drag is never a commitment. %>
+    <span class="editor__history run">
+      <button type="button" class="editor__step" data-action="badger-editor#undo" data-badger-editor-target="undo" title="Undo (⌘Z)" disabled>Undo</button>
+      <button type="button" class="editor__step" data-action="badger-editor#redo" data-badger-editor-target="redo" title="Redo (⇧⌘Z)" disabled>Redo</button>
+    </span>
+  </nav>
 
   <%# The form the head's Save submits: the document it holds goes as JSON. %>
   <form id="badger-editor-save" method="post" action="<%= badge_path(badge) %>" data-action="submit->badger-editor#save" hidden>
@@ -26,11 +41,31 @@
     <h3>Document</h3>
     <p class="hint">A tree of containers. Select a line to work on it.</p>
     <ol class="tree" data-badger-editor-target="tree"></ol>
-    <div class="tree__adders run">
-      <button type="button" class="tree__add" data-action="badger-editor#add" data-kind="region">+ Region</button>
-      <button type="button" class="tree__add" data-action="badger-editor#add" data-kind="type">+ Type</button>
-      <button type="button" class="tree__add" data-action="badger-editor#add" data-kind="child">+ Child</button>
-      <button type="button" class="tree__add" data-action="badger-editor#add" data-kind="illustration">+ Artwork</button>
+    <%# The adders say where a new entry goes — the selected container — and
+        ask what kind up front, so nothing arrives as one thing to be changed
+        into another. %>
+    <div class="tree__adders">
+      <p class="micro quiet tree__into" data-badger-editor-target="addInto">Add to Badge</p>
+      <div class="run">
+        <details class="adder">
+          <summary class="tree__add">+ Region</summary>
+          <div class="adder__menu">
+            <button type="button" data-action="badger-editor#add" data-kind="band">A band, for type to follow</button>
+            <button type="button" data-action="badger-editor#add" data-kind="rule">A rule, drawn</button>
+            <button type="button" data-action="badger-editor#add" data-kind="interior">An interior, for type to fit</button>
+          </div>
+        </details>
+        <details class="adder">
+          <summary class="tree__add">+ Type</summary>
+          <div class="adder__menu">
+            <button type="button" data-action="badger-editor#add" data-kind="follow">Following a band</button>
+            <button type="button" data-action="badger-editor#add" data-kind="fit">Fitted to a chord</button>
+            <button type="button" data-action="badger-editor#add" data-kind="fixed">At a fixed size</button>
+          </div>
+        </details>
+        <button type="button" class="tree__add" data-action="badger-editor#add" data-kind="child">+ Child</button>
+        <button type="button" class="tree__add" data-action="badger-editor#add" data-kind="illustration">+ Artwork</button>
+      </div>
     </div>
     <p class="micro quiet tree__foot">
       The document <%= link_to "as YAML", edit_badge_path(badge) %> · <%= link_to "as JSON", api_v1_badge_path(badge, format: :json) %>
@@ -63,7 +98,7 @@
   </div>
 
   <aside class="editor__inspector">
-    <div data-badger-editor-target="inspector"></div>
+    <div data-badger-editor-target="inspector" data-action="focusout->badger-editor#inspectorLeft"></div>
 
     <%# The reference's own panel: a form for the file and the buttons that
         need the host's token, rendered here and shown when the reference
@@ -119,8 +154,27 @@
       <div class="field" data-field="select"><label></label><select></select></div>
       <div class="field" data-field="textarea"><label></label><textarea rows="4" spellcheck="false"></textarea></div>
       <label class="choice" data-field="toggle"><input type="checkbox"> <span></span></label>
+      <div class="field" data-field="nine"><label></label><div class="nine" role="group"></div></div>
       <p class="hint" data-field="hint"></p>
       <p class="field__error" data-field="error"></p>
     </template>
+  </aside>
+
+  <%# The document as YAML. What is typed is drawn as it is typed, and a
+      document that does not build is refused here, under the text, naming
+      where in the document and why; the drawing keeps the last one that did. %>
+  <div class="editor__document">
+    <div class="field">
+      <label for="badger-editor-yaml">The document</label>
+      <textarea id="badger-editor-yaml" rows="28" spellcheck="false" data-badger-editor-target="yaml"
+                data-controller="badger-document" data-action="keydown->badger-document#indent input->badger-editor#yamlInput"></textarea>
+      <p class="field__error" data-badger-editor-target="yamlError" hidden></p>
+      <p class="hint">YAML. A shape, the regions it derives, type set into them, artwork, children; every parameter is named for what it means. Tab indents.</p>
+    </div>
+  </div>
+  <aside class="editor__notes">
+    <h3>Views</h3>
+    <p class="hint">The drawing and the document are one badge. A handle moved on the drawing is a number changed here; a line typed here is drawn there. Neither is saved until Save.</p>
+    <p class="micro quiet">The document <%= link_to "as JSON", api_v1_badge_path(badge, format: :json) %></p>
   </aside>
 </div>

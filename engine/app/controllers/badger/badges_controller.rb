@@ -26,24 +26,35 @@ module Badger
 
     def show
       @section = SECTIONS.include?(params[:section]) ? params[:section] : "compose"
+      @select = params[:select].to_s
       @colorway = @badge.colorways.find_by(id: params[:colorway]) if params[:colorway]
     end
 
+    # The start: a composition on a shape, named, or a document pasted whole.
     def new
-      @badge = Badge.new(spec: Seeds.starter(font: Fonts.names.first))
+      @badge = Badge.new
+      @composition = Compositions.default
+      @shape = @composition.shape
     end
 
     def edit
     end
 
+    # Composed from the composition and shape chosen, or from the document
+    # pasted; then opened in the editor with its first run selected, so the
+    # first thing done to a new badge is typing its word.
     def create
-      @badge = Badge.new(badge_params)
+      @badge = Badge.new(composed_params)
 
       if @badge.save
-        redirect_to @badge, notice: "#{@badge.name} composed."
+        redirect_to badge_path(@badge, select: "type[0]"), notice: "#{@badge.name} composed."
       else
         render :new, status: :unprocessable_content
       end
+    rescue Badger::Error => e
+      @badge = Badge.new(name: params.dig(:badge, :name))
+      @badge.errors.add(:base, e.message)
+      render :new, status: :unprocessable_content
     end
 
     # Saved from the edit page as a form, or from the editor as JSON: the
@@ -71,6 +82,23 @@ module Badger
     private
       def set_badge
         @badge = Badge.find(params[:id])
+      end
+
+      # What the start sends: a composition and a shape, with path data when
+      # the shape is a path, or a document pasted as YAML. The composition
+      # and shape chosen are kept for the page when it has to be shown again.
+      def composed_params
+        taken = params.require(:badge)
+        @composition = Compositions.find(taken[:composition]) || Compositions.default
+        @shape = Compositions::SHAPES.key?(taken[:shape].to_s) ? taken[:shape].to_s : @composition.shape
+        @path = taken[:path]
+        if taken[:spec_yaml].present?
+          pasted = Badge.new(spec_yaml: taken[:spec_yaml])
+          { name: taken[:name].presence || pasted.spec.try(:[], "name"), spec_yaml: taken[:spec_yaml] }
+        else
+          spec = Compositions.document(@composition.key, font: Fonts.names.first, shape: @shape, path: @path)
+          { name: taken[:name].presence || @composition.name, spec: spec }
+        end
       end
 
       # The editor sends the document whole, as JSON under `spec`; the edit

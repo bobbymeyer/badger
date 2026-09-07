@@ -1,5 +1,16 @@
-<% content_for :title, "Edit #{@badge.name}" %>
+<% content_for :title, "Rename #{@badge.name}" %>
 
-<%= page_head @badge.name %>
+<%# Renaming, and nothing else: the document is composed on the badge page,
+    as a drawing or as YAML, and this page is not a second copy of that. %>
+<%= page_head "Rename #{@badge.name}" %>
 
-<%= render "form", badge: @badge, submit_label: "Save", cancel_to: badge_path(@badge) %>
+<%= its_swiss_form_with model: @badge, class: "form measure" do |form| %>
+  <%= render "its_swiss/shared/errors", record: @badge %>
+
+  <%= form.text_field :name, hint: "What this badge is called. The document itself is composed on the badge page, as a drawing or as YAML." %>
+
+  <div class="run">
+    <%= form.submit "Rename" %>
+    <%= link_to "Cancel", badge_path(@badge), class: "button button--quiet" %>
+  </div>
+<% end %>

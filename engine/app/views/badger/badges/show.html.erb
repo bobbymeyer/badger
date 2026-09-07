@@ -11,13 +11,13 @@
     <%# The editor's own form, outside the head, is what this submits. %>
     <button type="submit" form="badger-editor-save" class="button button--primary">Save</button>
   <% end %>
-  <%= link_to "Edit", edit_badge_path(@badge), class: "button button--quiet" %>
+  <%= link_to "Rename", edit_badge_path(@badge), class: "button button--quiet" %>
   <%= button_to "Take away", badge_path(@badge), method: :delete, class: "button button--danger",
         form: { data: { turbo_confirm: "Take #{@badge.name} away?" } } %>
 <% end %>
 
 <% if @section == "compose" %>
-  <%= render "badger/badges/editor", badge: @badge %>
+  <%= render "badger/badges/editor", badge: @badge, select: @select %>
 <% else %>
 <div class="preview-column stack">
   <figure class="preview-figure">
