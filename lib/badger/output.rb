@@ -17,7 +17,7 @@ module Badger
   # Colours are never baked in. to_svg emits fills as custom properties
   # over the value grey unless a colours map is given.
   class Output
-    Piece = Data.define(:kind, :name, :path, :rank, :depth, :affine, :markup) do
+    Piece = Data.define(:kind, :name, :path, :rank, :depth, :affine, :markup, :address) do
       def d = path.to_d
       def passthrough? = !markup.nil?
     end
@@ -36,7 +36,7 @@ module Badger
       ranks = resolved.reject(&:markup).map(&:slot).uniq.sort
       @pieces = resolved.map do |r|
         Piece.new(kind: r.kind, name: r.name, path: r.path, rank: r.markup ? nil : ranks.index(r.slot), depth: r.depth,
-                  affine: r.affine, markup: r.markup)
+                  affine: r.affine, markup: r.markup, address: r.address)
       end.freeze
       @slots = ranks.each_with_index.map do |given, dense|
         SlotInfo.new(rank: dense, name: Slot.name_for(dense, ranks.size), given: given,
@@ -93,6 +93,25 @@ module Badger
     # Any locator resolved against the container, in world space.
     def anchor(locator) = world.apply(locator.resolve(container).point)
 
+    # What an editor draws over the pieces, visible or not: see
+    # Container#construction. Addresses tie each entry to the document.
+    def construction = @construction ||= container.construction(world: world)
+
+    # What went wrong without failing: a run that had to be squeezed to fit
+    # its sweep, one that overflows it, a glyph across a corner. Each names
+    # the address it is about, so an editor can say it beside the entry.
+    def warnings
+      @warnings ||= construction.select { |c| c[:kind] == "follow" }.flat_map do |c|
+        found = []
+        if c[:align] == "justify" && c[:tracking].negative?
+          found << { address: c[:address], message: "Negative tracking: the letters collide. Widen the sweep or condense the face." }
+        elsif !c[:fits]
+          found << { address: c[:address], message: "The run overflows its sweep by #{Geometry.fmt(c[:overflow])} units." }
+        end
+        found
+      end
+    end
+
     # Resolve slot ranks (dense rank or slot name) to fills.
     def fills(colors = nil)
       slots.to_h do |slot|
@@ -107,10 +126,11 @@ module Badger
       f = Geometry.method(:fmt)
       body = pieces.map do |piece|
         name = piece.name ? %( data-name="#{piece.name}") : ""
+        address = piece.address ? %( data-address="#{piece.address}") : ""
         if piece.passthrough?
-          %(  <g transform="#{piece.affine.to_svg}" data-kind="#{piece.kind}" data-passthrough="true"#{name}>#{piece.markup}</g>)
+          %(  <g transform="#{piece.affine.to_svg}" data-kind="#{piece.kind}" data-passthrough="true"#{name}#{address}>#{piece.markup}</g>)
         else
-          %(  <path d="#{piece.d}" fill="#{fill[piece.rank]}" data-slot="#{piece.rank}" data-kind="#{piece.kind}"#{name}/>)
+          %(  <path d="#{piece.d}" fill="#{fill[piece.rank]}" data-slot="#{piece.rank}" data-kind="#{piece.kind}"#{name}#{address}/>)
         end
       end
       viewbox = [min.x - padding, min.y - padding, width + 2 * padding, height + 2 * padding].map { |v| f.(v) }.join(" ")
@@ -129,7 +149,9 @@ module Badger
         container: container_path.to_d,
         anchors: anchors.transform_values { |p| { x: p.x, y: p.y } },
         slots: slots.map { |s| { rank: s.rank, name: s.name, property: s.property, value: s.value, pieces: s.pieces } },
-        pieces: pieces.map { |p| { kind: p.kind, name: p.name, slot: p.rank, depth: p.depth, d: p.d, passthrough: p.passthrough? } }
+        pieces: pieces.map { |p| { kind: p.kind, name: p.name, slot: p.rank, depth: p.depth, d: p.d, passthrough: p.passthrough?, address: p.address } },
+        construction: construction,
+        warnings: warnings
       }
     end
 

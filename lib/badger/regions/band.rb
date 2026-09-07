@@ -8,10 +8,10 @@ module Badger
     class Band < Base
       attr_reader :outer, :inner
 
-      def initialize(container, outer:, inner:, visible:, name:, slot: :ink)
+      def initialize(container, outer:, inner:, visible:, name:, slot: :ink, address: nil)
         raise ArgumentError, "a band's outer distance must exceed its inner distance" unless outer > inner
 
-        super(container, visible: visible, name: name, slot: slot)
+        super(container, visible: visible, name: name, slot: slot, address: address)
         @outer = outer.to_f
         @inner = inner.to_f
       end
