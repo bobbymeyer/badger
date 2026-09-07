@@ -1,0 +1,61 @@
+<%# locals: (badge:, colorway:) %>
+<%# What the badge wears: each colorway a snapshot of a palette, and the
+    rule each slot resolves by. Choosing one is Pandatone's dresser's. %>
+<section class="colorways stack">
+  <div class="run">
+    <%= link_to "Dress this badge", new_badge_colorway_path(badge), class: "button button--primary" %>
+  </div>
+
+  <%= explain "Colour arrives from Pandatone as a rule over a snapshot, never as a list of hexes. " \
+        "A slot without a rule is bound to its rank and takes the palette's colour at that rank, " \
+        "lightest first; assigning a palette colour binds it to that colour instead, and the swatch " \
+        "is hatched to say so. Drift is asked for, never applied." %>
+
+  <% if badge.colorways.none? %>
+    <p class="empty">Not dressed. The badge is complete in value.</p>
+  <% end %>
+
+  <% badge.colorways.each do |worn| %>
+    <article class="colorway stack" id="<%= dom_id(worn) %>">
+      <div class="run">
+        <% if worn == colorway %>
+          <h2><%= worn.palette_name %></h2>
+        <% else %>
+          <h2><%= link_to worn.palette_name, badge_path(badge, colorway: worn, section: "dress") %></h2>
+        <% end %>
+        <% worn.colors.each { |hex| concat slot_swatch(hex) } %>
+        <% if worn.invalidated? %><span class="quiet">The badge has outgrown this palette. Kept, not deleted.</span><% end %>
+      </div>
+
+      <% if worn == colorway && !worn.invalidated? %>
+        <table class="table bindings">
+          <thead>
+            <tr><th scope="col">Slot</th><th scope="col">Wearing</th><th scope="col">Binding</th></tr>
+          </thead>
+          <tbody>
+            <% badge.slots.each do |slot| %>
+              <% rule = worn.rule_for(slot.rank) %>
+              <tr>
+                <td><%= slot_swatch slot.value %> <%= slot.name.humanize %></td>
+                <td><% hex = worn.colors[slot.rank] %><%= slot_swatch hex, ruled: !rule.binds_to_rank? %> <code><%= hex %></code></td>
+                <td>
+                  <%= form_with url: badge_colorway_path(badge, worn), method: :patch, class: "bind run" do |f| %>
+                    <% unless rule.binds_to_rank? %><span><%= rule_in_words rule %></span><% end %>
+                    <%= f.hidden_field :rank, value: slot.rank %>
+                    <%= f.select :slot, (0...worn.snapshot.size).map { |i| [ "Colour #{i}", i ] }, {}, "aria-label": "Palette colour for #{slot.name}" %>
+                    <%= f.hidden_field :kind, value: "assigned_slot" %>
+                    <%= f.submit "Assign", class: "button button--quiet" %>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      <% end %>
+
+      <%= render "pandatone/dresser/actions", colorway: worn,
+            drift_url: drift_badge_colorway_path(badge, worn),
+            remove_url: badge_colorway_path(badge, worn) %>
+    </article>
+  <% end %>
+</section>

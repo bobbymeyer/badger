@@ -20,7 +20,12 @@ module Badger
       @badges = narrowed.sorted(@sort).offset((@page - 1) * PER_PAGE).limit(PER_PAGE)
     end
 
+    # The page's three surfaces: what the badge is made of, what it wears,
+    # how it leaves.
+    SECTIONS = %w[ compose dress export ].freeze
+
     def show
+      @section = SECTIONS.include?(params[:section]) ? params[:section] : "compose"
       @colorway = @badge.colorways.find_by(id: params[:colorway]) if params[:colorway]
     end
 

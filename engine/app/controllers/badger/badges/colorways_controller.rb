@@ -23,7 +23,7 @@ module Badger
 
       colorway = @badge.colorways.build(palette: palette)
       if colorway.save
-        redirect_to badge_path(@badge, colorway: colorway), notice: "#{@badge.name} dressed in #{palette.name}."
+        redirect_to dress(colorway), notice: "#{@badge.name} dressed in #{palette.name}."
       else
         redirect_to new_badge_colorway_path(@badge), alert: colorway.errors.full_messages.to_sentence
       end
@@ -41,28 +41,33 @@ module Badger
       else
         colorway.rules.where(rank: rank).destroy_all
       end
-      redirect_to badge_path(@badge, colorway: colorway), notice: "Slot #{rank} bound."
+      redirect_to dress(colorway), notice: "Slot #{rank} bound."
     rescue ActiveRecord::RecordInvalid => e
-      redirect_to badge_path(@badge, colorway: params[:id]), alert: e.message
+      redirect_to dress(params[:id]), alert: e.message
     end
 
     # Reported, never applied.
     def drift
       colorway = @badge.colorways.find(params[:id])
-      redirect_to badge_path(@badge, colorway: colorway), notice: drift_report(colorway)
+      redirect_to dress(colorway), notice: drift_report(colorway)
     rescue Pandatone::Dresser::Error => e
-      redirect_to badge_path(@badge, colorway: params[:id]), alert: "Pandatone could not be asked: #{e.message}"
+      redirect_to dress(params[:id]), alert: "Pandatone could not be asked: #{e.message}"
     end
 
     def destroy
       colorway = @badge.colorways.find(params[:id])
       colorway.destroy!
-      redirect_to badge_path(@badge), notice: "#{colorway.palette_name} taken off."
+      redirect_to badge_path(@badge, section: "dress"), notice: "#{colorway.palette_name} taken off."
     end
 
     private
       def set_badge
         @badge = Badge.find(params[:badge_id])
+      end
+
+      # Back to the surface the colorways live on, wearing this one.
+      def dress(colorway)
+        badge_path(@badge, colorway: colorway, section: "dress")
       end
   end
 end

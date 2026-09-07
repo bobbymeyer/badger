@@ -52,6 +52,23 @@ module Badger
       assert_select "details.document code", /kind: ellipse/
     end
 
+    # The page's three surfaces, named under the title; the one shown in the
+    # weight, and shown alone. The drawing is on every one.
+    test "the badge page is three surfaces, reached from the head" do
+      badge = create_badge
+
+      get badge_path(badge)
+      assert_equal %w[ Compose Dress Export ], css_select("header.page-head nav.sections a").map(&:text)
+      assert_select "nav.sections a[aria-current=page]", text: "Compose"
+      assert_select "section.export", 0
+
+      get badge_path(badge, section: "export")
+      assert_select "nav.sections a[aria-current=page]", text: "Export"
+      assert_select "section.export a[href=?]", api_v1_badge_path(badge, format: :svg)
+      assert_select "table.slots", 0
+      assert_select ".preview-column svg path[data-slot]", minimum: 3, message: "the drawing stays on every surface"
+    end
+
     test "composing a badge from the editor, and refusing a document that does not build" do
       get new_badge_path
       assert_select "textarea[name='badge[spec_yaml]']", /shape:/

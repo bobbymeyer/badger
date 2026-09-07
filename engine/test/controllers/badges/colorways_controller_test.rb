@@ -24,17 +24,22 @@ module Badger
           post badge_colorways_path(@badge), params: { palette_id: 1 }
         end
         colorway = Colorway.last
-        assert_redirected_to badge_path(@badge, colorway: colorway)
+        assert_redirected_to badge_path(@badge, colorway: colorway, section: "dress")
         follow_redirect!
         assert_select "svg path[fill='#111111']"
         assert_select "figcaption", /Wearing Brand/
+        assert_select "table.bindings tbody tr", 2
       end
     end
 
     test "a slot can be bound to a palette colour from the badge page, and unbound" do
       colorway = Colorway.create!(badge: @badge, palette: pandatone_palette("#111111", "#EEEEEE", "#C1272D"))
       patch badge_colorway_path(@badge, colorway), params: { rank: 1, kind: "assigned_slot", slot: 2 }
-      assert_redirected_to badge_path(@badge, colorway: colorway)
+      assert_redirected_to badge_path(@badge, colorway: colorway, section: "dress")
+      follow_redirect!
+      assert_select "table.bindings tbody tr", 2
+      assert_select "table.bindings .slot-swatch--ruled", 1
+      assert_select "table.bindings tbody tr", text: /Palette colour 2/
       assert_equal %w[#EEEEEE #C1272D], colorway.reload.colors
 
       patch badge_colorway_path(@badge, colorway), params: { rank: 1, kind: "auto_value_match" }
@@ -45,7 +50,7 @@ module Badger
       colorway = Colorway.create!(badge: @badge, palette: pandatone_palette("#111111", "#EEEEEE", id: 1, name: "Brand"))
       with_pandatone(palettes: { [ 1, "Brand" ] => %w[#111111 #FFFFFF] }) do
         patch drift_badge_colorway_path(@badge, colorway)
-        assert_redirected_to badge_path(@badge, colorway: colorway)
+        assert_redirected_to badge_path(@badge, colorway: colorway, section: "dress")
         assert_match(/has moved in Pandatone/, flash[:notice])
       end
       with_pandatone(palettes: {}) do
