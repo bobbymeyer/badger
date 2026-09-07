@@ -1,13 +1,24 @@
 <%# The engine's layout is the host's layout with the engine's own things
-    added: its stylesheets and its destination. Everything else, the shell,
-    the mark, the door, is the host's. %>
+    added: its stylesheets, its JavaScript, its destination, and the grid its
+    pages are laid out on. Everything else, the shell, the mark, the door, is
+    the host's.
+
+    The host's layout is expected to render its-swiss's shell and to place
+    :sections in its masthead nav; the dummy application under test/ shows
+    the least a host has to do. %>
 
 <% content_for :head do %>
-  <%= stylesheet_link_tag "badger/tokens", "badger/components", "data-turbo-track": "reload" %>
+  <%# The dresser's stylesheet is Pandatone's, for the picker and the
+      swatches; the other two are this engine's. Unlayered, like a host's own,
+      so they win over the library wherever the two meet. %>
+  <%= stylesheet_link_tag "badger/tokens", "badger/components", "pandatone/dresser", "data-turbo-track": "reload" %>
+  <%= javascript_import_module_tag "badger" %>
 <% end %>
 
 <% content_for :sections do %>
   <%= nav_link_to "Badges", badges_path, current: controller_path.start_with?("badger/badges") %>
 <% end %>
+
+<% content_for :main_class, "grid" %>
 
 <%= render template: "layouts/application" %>

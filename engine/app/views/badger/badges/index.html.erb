@@ -1,29 +1,40 @@
-<% content_for :title, "Badges" %>
-<% content_for :main_class, "grid" %>
-
-<header class="page-head run">
-  <h1>Badges</h1>
+<%= page_head "Badges", lede: "Each a container that derives regions, and type set into them: fitted, followed, or fixed. Composed in value; a palette is worn, never held." do %>
   <%= link_to "Compose a badge", new_badge_path, class: "button button--primary" %>
-</header>
+<% end %>
 
-<% if @badges.any? %>
-  <ul class="badge-cards">
-    <% @badges.each do |badge| %>
-      <li class="badge-card">
-        <%= link_to badge_path(badge) do %>
-          <%= badge_preview badge, class: "preview--card" %>
-          <span class="badge-card__name"><%= badge.name %></span>
-          <span class="badge-card__meta"><%= pluralize badge.slot_count, "slot" %>, <%= pluralize badge.colorways.count, "colorway" %></span>
-        <% end %>
-      </li>
-    <% end %>
-  </ul>
+<%# The library's filter block: a search that narrows as you type, into the
+    frame below, and two registers of one-of-a-handful, each carrying the
+    others. %>
+<div class="filters">
+  <%= search_form badges_path, frame: "badges", keep: { wearing: @wearing, sort: @sort } %>
 
-  <%= render "its_swiss/shared/pagination",
-        page: @page, pages: @pages, url: ->(number) { badges_path(page: number) } %>
-<% else %>
-  <p class="empty">
-    No badges yet. A badge is a container that derives regions, and type set into
-    them: fitted, followed, or fixed. It is composed in value and carries no colour.
-  </p>
+  <%= filter_register "Wearing",
+        [ [ "All", badges_path(q: params[:q], sort: @sort), @wearing.nil? ],
+          *Badger::Badge::WEARING.map { |key, label| [ label, badges_path(wearing: key, q: params[:q], sort: @sort), @wearing == key ] } ],
+        name: "wearing" %>
+
+  <%= filter_register "Sort by",
+        Badger::Badge::SORTS.map { |key, label| [ label, badges_path(sort: key, q: params[:q], wearing: @wearing), @sort == key ] },
+        name: "sort" %>
+</div>
+
+<%# Only the results live in the frame; the form stays outside it so typing
+    does not replace the field under the cursor. _top, because a card inside
+    is going somewhere else entirely. %>
+<%= turbo_frame_tag "badges", data: { turbo_action: "replace" }, target: "_top" do %>
+  <% if @badges.any? %>
+    <ul class="grid cards badge-cards">
+      <%= render partial: "badger/badges/card", collection: @badges, as: :badge %>
+    </ul>
+
+    <%= render "its_swiss/shared/pagination",
+          page: @page, pages: @pages, url: ->(number) { badges_path(page: number, q: params[:q], wearing: @wearing, sort: @sort) } %>
+  <% elsif @total.zero? %>
+    <p class="empty">
+      No badges yet. A badge is a container that derives regions, and type set into
+      them: fitted, followed, or fixed. It is composed in value and carries no colour.
+    </p>
+  <% else %>
+    <p class="empty">No badges match.</p>
+  <% end %>
 <% end %>

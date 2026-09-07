@@ -255,9 +255,9 @@ components:
               items:
                 type: object
                 properties:
-                  slot: { type: integer }
+                  rank: { type: integer, description: The slot rank the rule is for. }
                   kind: { type: string, enum: [auto_value_match, assigned_slot] }
-                  settings: { type: object }
+                  settings: { type: object, description: "For assigned_slot, slot names a position in the palette's own order." }
             colors:
               type: array
               description: A hex per slot rank, in rank order. Empty while invalidated.

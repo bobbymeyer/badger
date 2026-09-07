@@ -16,9 +16,9 @@ module Badger
 
     test "a slot can be bound to a palette index, and unbound again" do
       colorway = Colorway.create!(badge: @badge, palette: pandatone_palette("#12120F", "#FAF8F4", "#C1272D"))
-      colorway.bind(1, kind: "assigned_slot", index: 2)
+      colorway.bind(1, kind: "assigned_slot", slot: 2)
       assert_equal %w[#FAF8F4 #C1272D], colorway.colors
-      assert_raises(ActiveRecord::RecordInvalid) { colorway.bind(1, kind: "assigned_slot", index: 9) }
+      assert_raises(ActiveRecord::RecordInvalid) { colorway.bind(1, kind: "assigned_slot", slot: 9) }
       colorway.rules.destroy_all
       assert_equal %w[#FAF8F4 #12120F], colorway.reload.colors
     end
@@ -26,7 +26,7 @@ module Badger
     test "a palette with fewer colours than slots is refused, and drift is reported not applied" do
       colorway = Colorway.new(badge: @badge, palette: pandatone_palette("#12120F"))
       assert_not colorway.valid?
-      assert_match(/1 colours and the badge has 2 slots/, colorway.errors[:palette].first)
+      assert_match(/1 colours for 2 slots/, colorway.errors[:palette].first)
 
       colorway = Colorway.create!(badge: @badge, palette: pandatone_palette("#12120F", "#FAF8F4"))
       assert_not colorway.snapshot.drifted_from?(pandatone_palette("#12120F", "#FAF8F4"))
@@ -46,13 +46,13 @@ module Badger
     test "luminance ranks a palette paper first" do
       palette = pandatone_palette("#12120F", "#C1272D", "#FAF8F4")
       assert_equal %w[#FAF8F4 #C1272D #12120F], palette.ranked.map(&:hex)
-      assert_in_delta 1.0, Luminance.of(255, 255, 255), 1e-6
-      assert_in_delta 0.0, Luminance.of(0, 0, 0), 1e-6
+      assert_in_delta 1.0, Pandatone::Dresser::Luminance.of(255, 255, 255), 1e-6
+      assert_in_delta 0.0, Pandatone::Dresser::Luminance.of(0, 0, 0), 1e-6
     end
 
     test "the catalogue reads Pandatone's wire format through the configured source" do
       with_pandatone(palettes: { [ 1, "Brand" ] => %w[#111111 #EEEEEE #C1272D], [ 2, "Thin" ] => %w[#000000] }) do
-        catalog = Pandatone::Catalog.current
+        catalog = Pandatone::Dresser::Catalog.current
         assert_equal %w[Brand Thin], catalog.palettes.map(&:name)
         assert_equal %w[Brand], catalog.serving(2).map(&:name)
         assert_equal 3, catalog.palettes.first.size
@@ -61,11 +61,9 @@ module Badger
 
     test "an unreachable or refusing Pandatone is its own error, not an empty catalogue" do
       stub_request(:get, "https://pandatone.test/api/v1/palettes").to_return(status: 401)
-      Badger.pandatone_url = "https://pandatone.test"
-      Badger.pandatone_token = "x"
-      assert_raises(Pandatone::Unauthorized) { Pandatone::Client.configured.palettes_json }
-    ensure
-      Badger.pandatone_url = Badger.pandatone_token = nil
+      assert_raises(Pandatone::Dresser::Unauthorized) do
+        Pandatone::Dresser::Client.new(url: "https://pandatone.test", token: "x").palettes_json
+      end
     end
   end
 end

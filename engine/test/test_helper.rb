@@ -39,23 +39,24 @@ module ActiveSupport
       Badger::Badge.create!(name: name, spec: badge_document(name: name, **options))
     end
 
-    # Pandatone, configured and answering over HTTP, stubbed at the wire.
+    # Pandatone somewhere else, configured and answering over HTTP, stubbed
+    # at the wire.
     def with_pandatone(palettes: {}, url: "https://pandatone.test", token: "sekrit")
       stub_request(:get, "#{url}/api/v1/palettes")
         .to_return(body: palettes.keys.map { |id, name| { id: id, name: name, tags: [] } }.to_json,
           headers: { "Content-Type" => "application/json" })
       palettes.each { |(id, name), hexes| stub_palette(url, id, name, hexes) }
 
-      was = [ Badger.pandatone_url, Badger.pandatone_token, Badger.palette_source ]
-      Badger.pandatone_url = url
-      Badger.pandatone_token = token
-      Badger.palette_source = -> { Badger::Pandatone::Client.configured.palettes_json }
-      Badger::Pandatone::Catalog.forget!
+      was = [ Pandatone::Dresser.url, Pandatone::Dresser.token, Pandatone::Dresser.source ]
+      Pandatone::Dresser.url = url
+      Pandatone::Dresser.token = token
+      Pandatone::Dresser.source = -> { Pandatone::Dresser::Client.configured.palettes_json }
+      Pandatone::Dresser::Catalog.forget!
 
       yield
     ensure
-      Badger.pandatone_url, Badger.pandatone_token, Badger.palette_source = was
-      Badger::Pandatone::Catalog.forget!
+      Pandatone::Dresser.url, Pandatone::Dresser.token, Pandatone::Dresser.source = was
+      Pandatone::Dresser::Catalog.forget!
     end
 
     def stub_palette(url, id, name, hexes)
@@ -70,10 +71,10 @@ module ActiveSupport
 
     def pandatone_palette(*hexes, id: 7, name: "Sample")
       colors = hexes.each_with_index.map do |hex, index|
-        Badger::Pandatone::Color.new(id: (id * 100) + index, name: "Colour #{index}", hex: hex,
+        Pandatone::Dresser::Color.new(id: (id * 100) + index, name: "Colour #{index}", hex: hex,
           red: hex[1..2].to_i(16), green: hex[3..4].to_i(16), blue: hex[5..6].to_i(16))
       end
-      Badger::Pandatone::Palette.new(id: id, name: name, colors: colors)
+      Pandatone::Dresser::Palette.new(id: id, name: name, colors: colors)
     end
   end
 end

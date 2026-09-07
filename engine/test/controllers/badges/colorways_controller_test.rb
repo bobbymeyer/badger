@@ -9,9 +9,12 @@ module Badger
         get new_badge_colorway_path(@badge)
 
         assert_response :success
-        assert_select "ul.palettes > li", 1
-        assert_select "ol.palette-strip li", 3
-        assert_select "form[action=?] button", badge_colorways_path(@badge)
+        assert_select "header.page-head h1.page-title", text: "Dress Stockholm"
+        assert_select "section.palettes", 2, "the palette that cannot dress the badge is demoted, not hidden"
+        assert_select "section.palettes:first-of-type tbody tr", 1
+        assert_select "section.palettes:first-of-type ol.palette-strip li", 3
+        assert_select "section.palettes:last-of-type td", text: "1 short"
+        assert_select "form[action=?] button", badge_colorways_path(@badge, palette_id: 1), text: "Dress"
       end
     end
 
@@ -30,11 +33,11 @@ module Badger
 
     test "a slot can be bound to a palette colour from the badge page, and unbound" do
       colorway = Colorway.create!(badge: @badge, palette: pandatone_palette("#111111", "#EEEEEE", "#C1272D"))
-      patch badge_colorway_path(@badge, colorway), params: { slot: 1, kind: "assigned_slot", index: 2 }
+      patch badge_colorway_path(@badge, colorway), params: { rank: 1, kind: "assigned_slot", slot: 2 }
       assert_redirected_to badge_path(@badge, colorway: colorway)
       assert_equal %w[#EEEEEE #C1272D], colorway.reload.colors
 
-      patch badge_colorway_path(@badge, colorway), params: { slot: 1, kind: "auto_value_match" }
+      patch badge_colorway_path(@badge, colorway), params: { rank: 1, kind: "auto_value_match" }
       assert_equal %w[#EEEEEE #111111], colorway.reload.colors
     end
 
@@ -52,11 +55,25 @@ module Badger
     end
 
     test "Pandatone being unreachable is said, not hidden" do
-      Badger.pandatone_url = nil
+      with_pandatone(palettes: {}) do
+        stub_request(:get, "https://pandatone.test/api/v1/palettes").to_raise(Errno::ECONNREFUSED)
+
+        get new_badge_colorway_path(@badge)
+
+        assert_response :success
+        assert_select ".empty", text: /did not answer/
+      end
+    end
+
+    # No URL means the Pandatone in this process, which the dummy host has
+    # and has put nothing in. The picker renders, with nothing to choose.
+    test "with no Pandatone url the picker asks the one in this process" do
+      Pandatone::Dresser::Catalog.forget!
+
       get new_badge_colorway_path(@badge)
+
       assert_response :success
-      assert_select ".empty"
-      assert_match(/Pandatone could not be asked/, flash[:alert])
+      assert_select "section.palettes .empty", text: "None."
     end
 
     test "taking a colorway off" do

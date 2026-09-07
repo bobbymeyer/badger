@@ -19,7 +19,7 @@ GLYPHS = {
     "space": (250, []),
     "A": (600, [(0, 0), (600, 0), (300, 700)]),
     "V": (600, [(0, 700), (300, 0), (600, 700)]),
-    "T": (500, [(0, 600), (500, 600), (500, 700), (0, 700)]),
+    "T": (500, [(0, 600), (200, 600), (200, 0), (300, 0), (300, 600), (500, 600), (500, 700), (0, 700)]),
     "I": (300, [(100, 0), (200, 0), (200, 700), (100, 700)]),
     "H": (600, [(0, 0), (600, 0), (600, 700), (0, 700)]),
     "O": (600, [(50, 0), (550, 0), (550, 700), (50, 700)]),
@@ -29,8 +29,23 @@ GLYPHS = {
     "f_i": (500, [(50, 0), (450, 0), (450, 800), (50, 800)]),
 }
 
+# The rest of the caps and the digits, as plain rectangles: enough for any
+# word to shape to real glyphs with exact ink bounds. Caps are 550 wide on
+# a 600 advance; digits 450 on 500. Letters defined above keep their shapes.
+for letter in "BCDEFGJKLMNPQRSUWXYZ":
+    GLYPHS.setdefault(letter, (600, [(25, 0), (575, 0), (575, 700), (25, 700)]))
+for digit in "0123456789":
+    GLYPHS.setdefault(digit, (500, [(25, 0), (475, 0), (475, 700), (25, 700)]))
+GLYPHS.setdefault("ampersand", (600, [(25, 0), (575, 0), (575, 700), (25, 700)]))
+GLYPHS.setdefault("period", (250, [(75, 0), (175, 0), (175, 100), (75, 100)]))
+
 CMAP = {0x20: "space", ord("A"): "A", ord("V"): "V", ord("T"): "T", ord("I"): "I",
-        ord("H"): "H", ord("O"): "O", ord("x"): "x", ord("f"): "f", ord("i"): "i"}
+        ord("H"): "H", ord("O"): "O", ord("x"): "x", ord("f"): "f", ord("i"): "i",
+        ord("&"): "ampersand", ord("."): "period"}
+for letter in "BCDEFGJKLMNPQRSUWXYZ":
+    CMAP[ord(letter)] = letter
+for digit in "0123456789":
+    CMAP[ord(digit)] = digit
 
 FEATURES = """
 feature kern {

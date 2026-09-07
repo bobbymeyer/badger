@@ -1,3 +1,3 @@
-<% content_for :title, "Compose a badge" %>
-<h1 class="page-title">Compose a badge</h1>
+<%= page_head "Compose a badge", lede: "A document: a shape, the regions it derives, type set into them. Every parameter is named for what it means." %>
+
 <%= render "form", badge: @badge, submit_label: "Compose", cancel_to: badges_path %>

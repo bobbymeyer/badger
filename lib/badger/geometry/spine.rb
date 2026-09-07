@@ -123,6 +123,22 @@ module Badger
         def end = start + length
       end
 
+      # Arc length of the point on a closed spine seen at a visual polar
+      # angle (radians, from +x toward +y) from `center`.
+      def length_at_angle(angle, center:, samples: 1440)
+        raise ArgumentError, "length_at_angle needs a closed spine" unless closed?
+
+        target = angle % TAU
+        best = Array.new(samples) do |i|
+          s = length * i / samples.to_f
+          p = point_at(s)
+          seen = Math.atan2(p.y - center.y, p.x - center.x) % TAU
+          diff = (seen - target).abs
+          [[diff, TAU - diff].min, s]
+        end.min_by(&:first)
+        best.last
+      end
+
       def sweep(side, samples: 720)
         raise ArgumentError, "sweep is :top or :bottom" unless %i[top bottom].include?(side)
         raise ArgumentError, "a sweep needs a closed spine" unless closed?

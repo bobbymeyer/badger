@@ -21,10 +21,65 @@ module Badger
                        [width / 2.0, height / 2.0], [-width / 2.0, height / 2.0]])
     end
 
-    # A diamond: the points sit on the axes.
-    def lozenge(width, height, center: Geometry::Point.new(0.0, 0.0))
-      polygon(center, [[0.0, -height / 2.0], [width / 2.0, 0.0], [0.0, height / 2.0], [-width / 2.0, 0.0]])
+    # A diamond: the points sit on the axes. `radius:` fillets the points.
+    def lozenge(width, height, radius: 0.0, center: Geometry::Point.new(0.0, 0.0))
+      corners = [[0.0, -height / 2.0], [width / 2.0, 0.0], [0.0, height / 2.0], [-width / 2.0, 0.0]]
+      return polygon(center, corners) unless radius.positive?
+
+      fillet(corners.map { |x, y| center + Geometry::Point.new(x, y) }, radius)
     end
+
+    # |x/a|^n + |y/b|^n = 1: the oval between an ellipse (n = 2) and a
+    # rounded rectangle, which is what many period badges actually are.
+    # Sampled by arc angle into a closed polyline dense enough to be smooth.
+    def superellipse(width, height, exponent: 2.5, center: Geometry::Point.new(0.0, 0.0), samples: 256)
+      raise ArgumentError, "exponent must be positive" unless exponent.positive?
+
+      a = width / 2.0
+      b = height / 2.0
+      k = 2.0 / exponent
+      points = Array.new(samples) do |i|
+        t = TAU * i / samples
+        c = Math.cos(t)
+        s = Math.sin(t)
+        center + Geometry::Point.new(a * c.abs**k * (c <=> 0), b * s.abs**k * (s <=> 0))
+      end
+      Geometry::Path.polyline(points, closed: true)
+    end
+
+    # Round every corner of a closed polygon with an arc of `radius`, capped
+    # so the arc never eats more than half an edge.
+    def fillet(points, radius)
+      n = points.size
+      segments = []
+      tangents = points.each_index.map do |i|
+        prev = points[(i - 1) % n]
+        this = points[i]
+        nxt = points[(i + 1) % n]
+        into = (this - prev).normalized
+        out = (nxt - this).normalized
+        turn = Math.acos((-into).dot(out).clamp(-1.0, 1.0)) # interior angle
+        distance = radius / Math.tan(turn / 2)
+        cap = [this.distance_to(prev), this.distance_to(nxt)].min / 2.0
+        distance = [distance, cap].min
+        [this - into * distance, this + out * distance, this]
+      end
+      tangents.each_with_index do |(a, b, corner), i|
+        interior = Math.acos(((points[(i - 1) % n] - corner).normalized.dot((points[(i + 1) % n] - corner).normalized)).clamp(-1.0, 1.0))
+        arc_angle = Math::PI - interior
+        # the arc's radius as actually cut, which the edge-length cap may have reduced
+        cut = corner.distance_to(a) * Math.tan(interior / 2)
+        handle = 4.0 / 3 * Math.tan(arc_angle / 4) * cut
+        c1 = a + (corner - a).normalized * handle
+        c2 = b + (corner - b).normalized * handle
+        segments << Geometry::Cubic.new(a, c1, c2, b)
+        next_a = tangents[(i + 1) % n][0]
+        segments << Geometry::Line.new(b, next_a) if b.distance_to(next_a) > 1e-9
+      end
+      Geometry::Path.new([Geometry::Path::Subpath.new(segments: segments, closed: true)])
+    end
+
+    TAU = Geometry::TAU
 
     # Corners are quarter circles; the radius is capped at half the shorter side.
     def rounded_rectangle(width, height, radius:, center: Geometry::Point.new(0.0, 0.0))

@@ -7,7 +7,7 @@ module Badger
     setup do
       @badge = create_badge
       @colorway = Colorway.create!(badge: @badge, palette: pandatone_palette("#C1272D", "#FAF8F4", "#12120F"))
-      @colorway.bind(1, kind: "assigned_slot", index: 0)
+      @colorway.bind(1, kind: "assigned_slot", slot: 0)
     end
 
     test "the badges index returns exactly this shape" do
@@ -30,8 +30,8 @@ module Badger
       assert_equal({
         "id" => @colorway.id, "badge_id" => @badge.id, "palette_id" => 7, "palette_name" => "Sample", "invalidated" => false,
         "taken_at" => @colorway.snapshot.taken_at.iso8601,
-        "rules" => [ { "slot" => 0, "kind" => "auto_value_match", "settings" => {} },
-                     { "slot" => 1, "kind" => "assigned_slot", "settings" => { "index" => 0 } } ],
+        "rules" => [ { "rank" => 0, "kind" => "auto_value_match", "settings" => {} },
+                     { "rank" => 1, "kind" => "assigned_slot", "settings" => { "slot" => 0 } } ],
         "colors" => [ "#FAF8F4", "#C1272D" ]
       }, json)
     end

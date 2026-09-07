@@ -75,14 +75,63 @@ module Badger
     # centred on it. `anchor` says what y is: the ink's vertical centre or
     # the baseline. `edge: :narrowest` uses the tightest chord across the
     # ink's height instead of the chord through its centre, so the line
-    # fits inside a convex region.
-    def to_chord_at_y(run, interior, y, inset: 0.0, anchor: :center, edge: :center, through: nil)
-      chord_fit(run, interior, y, inset, anchor, edge, through, :horizontal)
+    # fits inside a convex region. `fill` is the fraction of the chord the
+    # line takes, before `inset` comes off each end.
+    #
+    # With `height:` the line's height is fixed and only its width follows
+    # the chord: a non-uniform fit, which needs axes: :both and a stretch
+    # range, and the range wins when the chord would ask for more.
+    def to_chord_at_y(run, interior, y, inset: 0.0, anchor: :center, edge: :center, through: nil, fill: 1.0, height: nil)
+      chord_fit(run, interior, y, inset, anchor, edge, through, :horizontal, fill: fill, across: height)
     end
 
-    # A glyph or line scaled to the interior's vertical chord at x.
-    def to_chord_at_x(run, interior, x, inset: 0.0, anchor: :center, edge: :center, through: nil)
-      chord_fit(run, interior, x, inset, anchor, edge, through, :vertical)
+    # A glyph or line scaled to the interior's vertical chord at x; with
+    # `width:` its width is fixed and its height follows the chord.
+    def to_chord_at_x(run, interior, x, inset: 0.0, anchor: :center, edge: :center, through: nil, fill: 1.0, width: nil)
+      chord_fit(run, interior, x, inset, anchor, edge, through, :vertical, fill: fill, across: width)
+    end
+
+    # Every glyph of a run fitted to the vertical chord at its own x, on a
+    # horizontal midline at y: the Giletti setting. The word takes one width
+    # scale, so that the whole run fills the horizontal chord at y (`fill`,
+    # less `word_inset` each end); each glyph's height is then the vertical
+    # chord at its position less `inset` each end, as far as the stretch
+    # range allows. The range wins: a glyph the chord would stretch past it
+    # stops at the range, at the word's width. Returns a Block of one
+    # Setting per glyph.
+    def glyphs_to_chords_at_x(run, interior, y: 0.0, inset: 0.0, word_inset: 0.0, fill: 1.0, edge: :center, tracking: 0.0)
+      raise ArgumentError, "a per-glyph fit needs axes: :both and a stretch: range" unless axes == :both && stretch
+      raise ArgumentError, "edge must be :center or :narrowest" unless %i[center narrowest].include?(edge)
+
+      glyphs = run.glyphs.select(&:ink?)
+      raise Badger::Error, "cannot fit a run with no ink" if glyphs.empty?
+
+      word_chord = interior.chord_at_y(y) or raise Badger::Error, "no chord of the interior at y = #{y}"
+      extent = (word_chord[1] - word_chord[0]) * fill - 2 * word_inset - tracking * (glyphs.size - 1)
+      raise ArgumentError, "inset and tracking leave no room on the chord" unless extent.positive?
+
+      bounds = glyphs.map { |g| g.path.bounds }
+      widths0 = bounds.map { |min, max| max.x - min.x }
+      kx = extent / widths0.sum
+      left = (word_chord[0] + word_chord[1]) / 2 - (extent + tracking * (glyphs.size - 1)) / 2
+
+      x = left
+      settings = glyphs.each_with_index.map do |glyph, i|
+        min, max = bounds[i]
+        width = widths0[i] * kx
+        levels = edge == :narrowest ? [x, x + width] : [x + width / 2]
+        chords = levels.map { |level| interior.chord_at_x(level, through: y) }
+        target = chords.all? ? chords.map(&:last).min - chords.map(&:first).max - 2 * inset : nil
+        ky = target&.positive? ? target / (max.y - min.y) : kx
+        sy = kx * (ky / kx).clamp(stretch.begin, stretch.end)
+        single = Run.new(glyphs: [glyph], size: run.size, scale: run.scale, metrics: run.metrics)
+        base = Setting.new(single, Geometry::Affine.scale(kx, sy))
+        bmin, bmax = base.ink_bounds
+        placed = base.transform(Geometry::Affine.translate(x - bmin.x, y - (bmin.y + bmax.y) / 2))
+        x += width + tracking
+        placed
+      end
+      Block.new(settings, union: :line)
     end
 
     private
@@ -119,20 +168,29 @@ module Badger
     # on the scale, so the fit is a root of
     #   h(k) = available chord at scale k - k * unscaled ink extent
     # which is monotone on a convex region. Bracket and bisect; placed ink
-    # bounds are affine in k, so nothing is re-flattened per step.
-    def chord_fit(run, interior, position, inset, anchor, edge, through, direction)
+    # bounds are affine in k, so nothing is re-flattened per step. With a
+    # fixed across-axis size the ink's extent across the chord is known and
+    # the chord follows directly.
+    def chord_fit(run, interior, position, inset, anchor, edge, through, direction, fill: 1.0, across: nil)
       raise ArgumentError, "anchor must be :center or :baseline" unless %i[center baseline].include?(anchor)
       raise ArgumentError, "edge must be :center or :narrowest" unless %i[center narrowest].include?(edge)
+      raise ArgumentError, "fill must be within 0..1" unless fill.positive? && fill <= 1.0
+      raise ArgumentError, "a fixed height or width needs axes: :both and a stretch: range" if across && !(axes == :both && stretch)
 
       base = run.ink_bounds
       raise Badger::Error, "cannot fit a run with no ink" unless base
 
       horizontal = direction == :horizontal
       ink0 = horizontal ? base[1].x - base[0].x : base[1].y - base[0].y
-      raise Badger::Error, "cannot fit a run with no ink" unless ink0.positive?
+      across0 = horizontal ? base[1].y - base[0].y : base[1].x - base[0].x
+      raise Badger::Error, "cannot fit a run with no ink" unless ink0.positive? && across0.positive?
+
+      # k_across scales the axis across the chord; with a fixed size it is
+      # settled up front, otherwise it tracks k (uniform).
+      across_scale = across ? ->(_k) { across / across0 } : ->(k) { k }
 
       chord_for = lambda do |k|
-        lo, hi = placed_across_range(base, k, position, anchor, horizontal)
+        lo, hi = placed_across_range(base, across_scale.call(k), position, anchor, horizontal)
         levels = if edge == :narrowest then [lo, hi]
                  elsif anchor == :baseline then [(lo + hi) / 2]
                  else [position]
@@ -140,9 +198,13 @@ module Badger
         chords = levels.map { |level| horizontal ? interior.chord_at_y(level, through: through) : interior.chord_at_x(level, through: through) }
         next nil if chords.any?(&:nil?)
 
-        a = chords.map(&:first).max + inset
-        b = chords.map(&:last).min - inset
-        b > a ? [a, b] : nil
+        a = chords.map(&:first).max
+        b = chords.map(&:last).min
+        next nil unless b > a
+
+        mid = (a + b) / 2
+        half = (b - a) * fill / 2 - inset
+        half.positive? ? [mid - half, mid + half] : nil
       end
 
       k = case policy
@@ -150,12 +212,19 @@ module Badger
           when :fill then solve(chord_for, ink0, position, horizontal)
           when :contain then [solve(chord_for, ink0, position, horizontal), max_size / run.size].min
           end
-
       chord = chord_for.call(k)
       raise Badger::Error, "no chord of the interior at #{horizontal ? 'y' : 'x'} = #{position}" unless chord
 
+      k_across = across_scale.call(k)
+      if across
+        # the range wins over the chord: a bar is never stretched into a block
+        ratio = (k_across / k).clamp(stretch.begin, stretch.end)
+        k = k_across / ratio
+      end
       scaled = run.scale_by(k)
-      min, max = base.map { |p| p * k }
+      stretch_ratio = k_across / k
+      affine = horizontal ? Geometry::Affine.scale(1.0, stretch_ratio) : Geometry::Affine.scale(stretch_ratio, 1.0)
+      min, max = base.map { |p| affine.apply(p * k) }
       center = (min + max) / 2
       along = (chord[0] + chord[1]) / 2
       dx, dy = if horizontal
@@ -163,18 +232,18 @@ module Badger
                else
                  [position - center.x, along - center.y]
                end
-      Setting.new(scaled, Geometry::Affine.translate(dx, dy))
+      Setting.new(scaled, Geometry::Affine.translate(dx, dy) * affine)
     end
 
-    # The placed ink's extent across the chord direction at scale k.
-    def placed_across_range(base, k, position, anchor, horizontal)
+    # The placed ink's extent across the chord direction at across-scale ka.
+    def placed_across_range(base, ka, position, anchor, horizontal)
       if horizontal
-        lo = base[0].y * k
-        hi = base[1].y * k
+        lo = base[0].y * ka
+        hi = base[1].y * ka
         shift = anchor == :baseline ? position : position - (lo + hi) / 2
       else
-        lo = base[0].x * k
-        hi = base[1].x * k
+        lo = base[0].x * ka
+        hi = base[1].x * ka
         shift = position - (lo + hi) / 2
       end
       [lo + shift, hi + shift]
@@ -199,5 +268,6 @@ module Badger
       end
       (lo + hi) / 2
     end
+
   end
 end

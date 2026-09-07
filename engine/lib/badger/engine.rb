@@ -7,24 +7,13 @@ require "importmap-rails"
 require "turbo-rails"
 require "stimulus-rails"
 require "its-swiss"
+require "pandatone"
 
 module Badger
   # The host's controllers the engine's inherit from. The host's decide who
   # gets in; the engine never has to know what a user is.
   mattr_accessor :base_controller_class, default: "::ApplicationController"
   mattr_accessor :api_base_controller_class, default: "::ApiController"
-
-  # Where Pandatone is and what to show it at the door, for the HTTP client
-  # the engine uses when nobody has said otherwise. Neither is required to
-  # boot: a badge is composed in value, and only dressing one needs Pandatone.
-  mattr_accessor :pandatone_url, default: ENV["PANDATONE_URL"].presence
-  mattr_accessor :pandatone_token, default: ENV["PANDATONE_TOKEN"].presence
-
-  # Where palettes come from: anything that answers `call` with an array of
-  # palettes in Pandatone's wire format. The default fetches them over HTTP;
-  # a host with Pandatone in the same process hands over a lambda that asks
-  # it directly, and the engine never learns the difference.
-  mattr_accessor :palette_source, default: -> { Badger::Pandatone::Client.configured.palettes_json }
 
   # Directories the badge editor may name fonts from. A badge names a font
   # by its file name without the extension; the host says where to look.
@@ -48,6 +37,22 @@ module Badger
           app.config.paths["db/migrate"] << path
         end
       end
+    end
+
+    # Propshaft finds an engine's app/assets/stylesheets on its own; the
+    # JavaScript is not in that default set.
+    initializer "badger.assets" do |app|
+      app.config.assets.paths << root.join("app/assets/javascripts") if app.config.respond_to?(:assets)
+    end
+
+    # Pinned from the engine rather than written into the host's importmap:
+    # what the engine ships, the engine pins. The layout imports the module
+    # that registers the engine's controllers, so a host adds nothing.
+    initializer "badger.importmap", before: "importmap" do |app|
+      next unless app.respond_to?(:importmap)
+
+      app.config.importmap.paths << root.join("config/importmap.rb")
+      app.config.importmap.cache_sweepers << root.join("app/assets/javascripts")
     end
 
     # The host's font directories reach the core's registry once the host's

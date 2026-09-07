@@ -20,7 +20,10 @@ jobs:
       - name: The sidecar's packages
         run: pip install -r requirements.txt
       - name: The sidecar can run
-        run: ruby -Ilib -e 'require "badger"; r = Badger.doctor; puts r; exit(r["ok"] ? 0 : 1)'
+        # A block, because the ternary's `: ` reads as a mapping to YAML and
+        # the whole workflow refused to start on every push before this.
+        run: |
+          ruby -Ilib -e 'require "badger"; r = Badger.doctor; puts r; exit(r["ok"] ? 0 : 1)'
       - run: bundle exec rake test
 
   engine:
