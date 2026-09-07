@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.6.0 — 2026-09-08
+
+On its-swiss 1.0. The core is unchanged and moves with it.
+
+### Changed
+
+- **Set on its-swiss 1.0.** The library registers its own controllers from
+  a module its shell imports, so the dummy no longer registers them by hand.
+  A form has no width of its own in 1.0, which is what the start had to say
+  for itself before; it no longer does.
+
 ## 0.5.0 — 2026-09-08
 
 The start, and the document beside the drawing. A new badge began as YAML in a textarea; it now begins as a composition on a shape, and the YAML is the editor's second view of the same document.

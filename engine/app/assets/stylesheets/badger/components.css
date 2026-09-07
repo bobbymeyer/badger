@@ -65,10 +65,8 @@
    fields, two each; the shapes are a row of glyphs. Both are radios, and
    the one chosen is the box drawn in ink: the choice is the only thing on
    the page that is boxed, so the box is the signal. */
-/* The library's form is a column at the measure; the start is the page's
-   whole width, with the name field and the pasted document at the measure
-   on their own. */
-.form.start { max-width: none; align-items: stretch; }
+/* The start is the page's whole width; the name field and the pasted
+   document are at the measure on their own. */
 
 .start__set {
   border: 0;
