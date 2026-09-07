@@ -1,22 +1,24 @@
 # Dressing a badge in one of Pandatone's palettes. Choosing is the only part
-# that needs Pandatone at all; a colorway renders from its snapshot afterwards.
+# that needs Pandatone at all; a colorway renders from its snapshot
+# afterwards. The asking is Pandatone's dresser's; what is here is the
+# badge's side of it.
 module Badger
   class Badges::ColorwaysController < ApplicationController
+    include Pandatone::Dresser::Dressing
+
     before_action :set_badge
 
-    # The palette picker: every palette Pandatone has that can dress this
-    # badge, ranked strips, chosen on the ladder.
+    # The palette picker: every palette Pandatone has, the ones that can
+    # dress this badge first — demoted and not excluded, because a slot
+    # taken out of the document brings the rest back into range.
     def new
-      Pandatone::Catalog.forget! if params[:refresh]
-      @catalog = Pandatone::Catalog.current
-      @palettes = @catalog.serving(@badge.slot_count)
-    rescue Pandatone::Error => e
-      @palettes = []
-      flash.now[:alert] = "Pandatone could not be asked: #{e.message}"
+      @serving, @demoted = catalog.palettes.partition { |palette| palette.serves?(@badge.slot_count) }
+    rescue Pandatone::Dresser::Error => e
+      @unreachable = e
     end
 
     def create
-      palette = Pandatone::Catalog.current.palettes.find { |candidate| candidate.id == params[:palette_id].to_i }
+      palette = palette_from_catalog(params[:palette_id])
       return redirect_to(new_badge_colorway_path(@badge), alert: "That palette is not in the catalogue.") if palette.nil?
 
       colorway = @badge.colorways.build(palette: palette)
@@ -25,36 +27,30 @@ module Badger
       else
         redirect_to new_badge_colorway_path(@badge), alert: colorway.errors.full_messages.to_sentence
       end
-    rescue Pandatone::Error => e
+    rescue Pandatone::Dresser::Error => e
       redirect_to new_badge_colorway_path(@badge), alert: "Pandatone could not be asked: #{e.message}"
     end
 
-    # Bind one slot to a rule: by rank (the default) or to a palette index.
+    # Bind one rank to a rule: by rank (the default) or to a position in the
+    # palette.
     def update
       colorway = @badge.colorways.find(params[:id])
-      slot = params[:slot].to_i
+      rank = params[:rank].to_i
       if params[:kind] == "assigned_slot"
-        colorway.bind(slot, kind: "assigned_slot", index: params[:index].to_i)
+        colorway.bind(rank, kind: "assigned_slot", slot: params[:slot].to_i)
       else
-        colorway.rules.where(slot: slot).destroy_all
+        colorway.rules.where(rank: rank).destroy_all
       end
-      redirect_to badge_path(@badge, colorway: colorway), notice: "Slot #{slot} bound."
+      redirect_to badge_path(@badge, colorway: colorway), notice: "Slot #{rank} bound."
     rescue ActiveRecord::RecordInvalid => e
       redirect_to badge_path(@badge, colorway: params[:id]), alert: e.message
     end
 
-    # Whether the palette has moved since the snapshot. Asked for, not checked
-    # on every page load.
+    # Reported, never applied.
     def drift
       colorway = @badge.colorways.find(params[:id])
-      Pandatone::Catalog.forget!
-      live = Pandatone::Catalog.current.palettes.find { |palette| palette.id == colorway.palette_id }
-      message = if live.nil? then "Pandatone no longer has that palette. The snapshot is all there is of it now."
-      elsif colorway.snapshot.drifted_from?(live) then "#{live.name} has moved in Pandatone since this snapshot. Nothing here has changed."
-      else "#{live.name} is as it was."
-      end
-      redirect_to badge_path(@badge, colorway: colorway), notice: message
-    rescue Pandatone::Error => e
+      redirect_to badge_path(@badge, colorway: colorway), notice: drift_report(colorway)
+    rescue Pandatone::Dresser::Error => e
       redirect_to badge_path(@badge, colorway: params[:id]), alert: "Pandatone could not be asked: #{e.message}"
     end
 

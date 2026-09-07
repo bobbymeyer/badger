@@ -1,0 +1,13 @@
+<%# locals: (badge:) %>
+<%# One badge on the index: drawn in value over its name and what it holds.
+    The figure is square, so the box is whole lines at any width and a tall
+    badge and a wide one sit on one row. %>
+<li class="card badge-card" id="<%= dom_id(badge) %>">
+  <%= link_to badge_path(badge), class: "card__link" do %>
+    <figure class="card__figure figure" style="--ratio: 1">
+      <%= badge_preview badge, bare: true %>
+    </figure>
+    <span class="card__name"><%= badge.name %></span>
+  <% end %>
+  <span class="card__meta"><%= pluralize badge.slot_count, "slot" %> · <%= pluralize badge.colorways.count, "colorway" %></span>
+</li>

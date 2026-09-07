@@ -12,6 +12,22 @@ module Badger
     validates :name, presence: true, uniqueness: { case_sensitive: false }
     validate :spec_builds
 
+    # What the index narrows by: a name as typed, whether a palette has been
+    # chosen, and the orders the sort register offers.
+    scope :name_matching, ->(q) { q.present? ? where("LOWER(#{table_name}.name) LIKE ?", "%#{sanitize_sql_like(q.to_s.downcase)}%") : all }
+    scope :wearing, ->(state) {
+      case state.to_s
+      when "dressed" then where(id: Colorway.select(:badge_id))
+      when "undressed" then where.not(id: Colorway.select(:badge_id))
+      else all
+      end
+    }
+
+    SORTS = { "name" => "Name", "newest" => "Newest" }.freeze
+    WEARING = { "dressed" => "Dressed", "undressed" => "In value" }.freeze
+
+    scope :sorted, ->(key) { key.to_s == "newest" ? order(created_at: :desc, name: :asc) : order(:name) }
+
     # Addressable by name as well as id: a consuming tool asking for
     # "Stockholm" should not have to look an id up first.
     def self.friendly(key)

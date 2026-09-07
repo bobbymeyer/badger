@@ -196,7 +196,7 @@ Fonts are named, not pathed: `Badger::Fonts.add_directory(dir)` scans for TrueTy
 
 **The engine** lives in `engine/` as a second gem, `badger-rails`, packaged the way Pandatone and Stripeclub are: its own controllers, routes, views, migrations and stylesheets under the `Badger` namespace and the `badger_` table prefix, inheriting the host's door and shell. It stores badges as documents, renders them in value, dresses them in a Pandatone palette as a colorway (a snapshot plus a rule per slot, drift reported and never applied), and serves a read-only JSON API described at `api/v1/openapi`. The Ruby interface is `Badger.badges`, `Badger.badge(key)`, `Badger.badge_svg(key, colorway:)`, `Badger.colorways`, `Badger.colorway(id)`.
 
-A host takes both gems from one tag, sets `Badger.palette_source` and `Badger.font_directories` in an initializer, mounts `Badger::Engine`, and installs `requirements.txt` into its Python. `bin/rails badger:doctor` says whether the sidecar can run; `bin/rails badger:seed` plants Stockholm, Giletti and Le Dive.
+A host takes both gems from one tag, sets `Badger.font_directories` in an initializer, mounts `Badger::Engine`, and installs `requirements.txt` into its Python. Palettes come through Pandatone's own dresser: the Pandatone in the same process, or the one at `PANDATONE_URL`. `bin/rails badger:doctor` says whether the sidecar can run; `bin/rails badger:seed` plants Stockholm, Giletti and Le Dive.
 
 ```sh
 cd engine && bundle install && bin/rails test   # the engine's suite, against the dummy host under test/

@@ -1,13 +1,12 @@
-<% content_for :title, "Dress #{@badge.name}" %>
+<%= page_head "Dress #{@badge.name}",
+      lede: "#{pluralize(@badge.slot_count, "colour slot")}, ranked from the ground. A palette with at least that many colours can dress it." do %>
+  <%= link_to "Back to the badge", @badge, class: "button button--quiet" %>
+<% end %>
 
-<header class="page-head run">
-  <h1>Dress <%= @badge.name %></h1>
-  <%= link_to "Refresh from Pandatone", new_badge_colorway_path(@badge, refresh: 1), class: "button button--quiet" %>
-</header>
-
-<p class="lede">
-  A palette with at least <%= pluralize @badge.slot_count, "colour" %>. Each is shown on the ladder,
-  lightest to darkest, because what a palette is for here is its distribution of value.
-</p>
-
-<%= render "palettes", palettes: @palettes, badge: @badge %>
+<%# The picker is Pandatone's dresser's: the catalogue, split into what can
+    dress this badge and what cannot, on the ladder. %>
+<%= render "pandatone/dresser/picker",
+      slot_count: @badge.slot_count, serving: @serving.to_a, demoted: @demoted.to_a, unreachable: @unreachable,
+      noun: "this badge",
+      dress_url: ->(palette) { badge_colorways_path(@badge, palette_id: palette.id) },
+      refresh_url: new_badge_colorway_path(@badge, refresh: 1) %>

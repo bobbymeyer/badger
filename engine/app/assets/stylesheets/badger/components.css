@@ -1,10 +1,15 @@
 /* Badger's own components: what this application is rather than what it
- * looks like. Unlayered, like theme.css. */
+ * looks like. The page head, the filter block and the cards are the
+ * library's; the picker and the swatches are Pandatone's dresser's.
+ * Unlayered, like theme.css. */
 
+/* --- The preview -------------------------------------------------------
+   The one place colour belongs. A badge is content here, not chrome, so it
+   gets a hairline and nothing else. */
 .preview {
-  border: var(--rule-hairline, 1px) solid var(--rule);
+  border: var(--rule-hair) solid var(--rule);
   background: var(--paper);
-  padding: var(--space-2, 0.5rem);
+  padding: var(--space-2);
 }
 
 .preview svg {
@@ -18,6 +23,13 @@
   color: var(--ink-quiet);
 }
 
+/* On a card the badge is the figure's own picture, sized by the library to
+   whole lines; the hairline it had as a preview goes with the frame. */
+.badge-card .card__figure > svg {
+  border: var(--rule-hair) solid var(--rule);
+  padding: var(--space-2);
+}
+
 .preview-figure { margin: 0; }
 
 .preview-figure figcaption {
@@ -27,63 +39,14 @@
   max-width: var(--measure);
 }
 
-.badge-cards {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
-  gap: var(--gutter, 1.5rem);
-}
+/* --- Colorways ----------------------------------------------------------- */
+.colorway .run { align-items: center; }
 
-.badge-card a {
-  display: block;
-  text-decoration: none;
-  color: inherit;
-}
+.bind { align-items: center; }
 
-.badge-card__name {
-  display: block;
-  padding-block-start: var(--space-2);
-  font-weight: 600;
-}
-
-.badge-card__meta {
-  display: block;
-  color: var(--ink-quiet);
+/* --- The document -------------------------------------------------------- */
+.document pre {
+  max-width: var(--measure);
+  overflow: auto;
   font-size: var(--size-1);
 }
-
-.page-head {
-  justify-content: space-between;
-  align-items: baseline;
-  padding-block-end: var(--space-3);
-}
-
-.slot-swatch,
-.palette-swatch {
-  display: inline-block;
-  inline-size: 1rem;
-  block-size: 1rem;
-  vertical-align: middle;
-  border: var(--rule-hairline, 1px) solid var(--rule);
-  margin-inline-end: var(--space-1, 0.25rem);
-}
-
-.palette-strip {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  gap: var(--space-2);
-  flex-wrap: wrap;
-}
-
-.palette-strip li { display: inline-flex; align-items: center; gap: var(--space-1); }
-
-.palettes { list-style: none; padding: 0; margin: 0; }
-.palettes .palette { justify-content: space-between; align-items: center; padding-block: var(--space-3); border-block-end: var(--rule-hairline, 1px) solid var(--rule); }
-
-.colorway { align-items: center; flex-wrap: wrap; }
-.bind { align-items: center; }
-.document pre { max-width: var(--measure); overflow: auto; font-size: var(--size-1); }

@@ -9,9 +9,31 @@ module Badger
       get badges_path
 
       assert_response :success
-      assert_select "ul.badge-cards li", 2
-      assert_select "svg", 2
+      assert_select "header.page-head h1.page-title", text: "Badges"
+      assert_select "ul.cards > li.badge-card", 2
+      assert_select ".badge-card .card__figure > svg", 2
       assert_select "link[rel=stylesheet][href*='badger/components']"
+      assert_select "link[rel=stylesheet][href*='pandatone/dresser']"
+      assert_select "script[type=module]", /import "badger"/
+    end
+
+    # The library's filter block: a search that narrows as you type, into the
+    # frame the cards are in, and a register for what the badge is wearing.
+    test "the index narrows by name and by what is worn, and keeps its order" do
+      dressed = create_badge(name: "Stockholm")
+      create_badge(name: "Kiruna")
+      Colorway.create!(badge: dressed, palette: pandatone_palette("#111111", "#EEEEEE"))
+
+      get badges_path(q: "o", wearing: "dressed", sort: "newest")
+
+      assert_select ".filters form[data-controller='its-swiss-live-search'][data-turbo-frame=badges]"
+      assert_select "[data-filter=wearing] a[aria-current]", text: "Dressed"
+      assert_select "[data-filter=sort] a[aria-current]", text: "Newest"
+      assert_select "turbo-frame#badges .badge-card", 1
+      assert_select ".badge-card .card__name", text: "Stockholm"
+
+      get badges_path(q: "zzz")
+      assert_select ".empty", text: "No badges match."
     end
 
     test "an empty index says so" do
