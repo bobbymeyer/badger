@@ -7,11 +7,9 @@ gemspec
 # The core, from the same repository.
 gem "badger", path: ".."
 
-# its-swiss 0.8 and pandatone 0.2 are not released yet; until they are, the
-# engine develops against the branches that carry them. Delete these lines
-# when they are.
-gem "its-swiss", github: "bobbymeyer/its-swiss", branch: "main"
-gem "pandatone", github: "bobbymeyer/pandatone", branch: "main"
+# Pandatone is not published to RubyGems; the engine takes it from its tag,
+# the way a host does. its-swiss comes from RubyGems through the gemspec.
+gem "pandatone", github: "bobbymeyer/pandatone", tag: "v0.2.0"
 
 gem "puma"
 gem "sqlite3", ">= 2.1"
