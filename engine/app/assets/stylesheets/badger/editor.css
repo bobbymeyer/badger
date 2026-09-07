@@ -117,12 +117,22 @@
 }
 
 .stage__toggles, .stage__zoom { flex: none; gap: var(--space-1); }
-.stage__status { flex: 1; min-width: 0; text-align: right; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* The bar is one line tall and its labels are centred in it, not set on
+   the baseline grid: the faces are trimmed to the cap, so a cap-high line
+   box is the label's ink and flex centres it. The status is a line of the
+   same, clipped with room for its ellipsis. */
+.stage__status {
+  flex: 1; min-width: 0; margin: 0;
+  text-align: right; white-space: nowrap; text-overflow: ellipsis;
+  overflow: clip; overflow-clip-margin: 3px;
+  line-height: 1cap; padding-block: calc((var(--line) - 1cap) / 2);
+}
 
 .stage__toggle {
   font-family: var(--face-200), var(--font-family);
   font-size: var(--size-1);
-  line-height: var(--line);
+  line-height: 1cap;
+  block-size: var(--line);
   border: 0;
   padding: 0 var(--space-2);
   cursor: pointer;
