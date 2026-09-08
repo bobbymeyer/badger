@@ -101,14 +101,20 @@ module Badger
     # its sweep, one that overflows it, a glyph across a corner. Each names
     # the address it is about, so an editor can say it beside the entry.
     def warnings
-      @warnings ||= construction.select { |c| c[:kind] == "follow" }.flat_map do |c|
-        found = []
-        if c[:align] == "justify" && c[:tracking].negative?
-          found << { address: c[:address], message: "Negative tracking: the letters collide. Widen the sweep or condense the face." }
-        elsif !c[:fits]
-          found << { address: c[:address], message: "The run overflows its sweep by #{Geometry.fmt(c[:overflow])} units." }
+      @warnings ||= begin
+        noted = construction.flat_map do |c|
+          Array(c[:notes]).map { |note| { address: c[:address], message: note } }
         end
-        found
+        followed = construction.select { |c| c[:kind] == "follow" }.flat_map do |c|
+          found = []
+          if c[:align] == "justify" && c[:tracking].negative?
+            found << { address: c[:address], message: "Negative tracking: the letters collide. Widen the sweep or condense the face." }
+          elsif !c[:fits]
+            found << { address: c[:address], message: "The run overflows its sweep by #{Geometry.fmt(c[:overflow])} units." }
+          end
+          found
+        end
+        noted + followed
       end
     end
 

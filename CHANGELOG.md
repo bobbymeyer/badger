@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+### Fixed
+
+- **A band's baseline goes on the edge the type grows away from.** A run's
+  ink rises from its baseline along its own normal, and that normal turns
+  with the run's direction: out of the badge over the top, into it under the
+  bottom, and `reversed` flips both. `from:` defaulted to the inner edge for
+  all of them, so half the sweeps set their type outside the band they name —
+  `sweep: bottom` and `sweep: top, reversed: true` among them — and nothing
+  said so. The edge is read off the run now. Documents that name `from:` are
+  unchanged, including the references.
+
+### Added
+
+- **A note a builder leaves on a node comes out of `Output#warnings`.** The
+  first one: type set from an edge it grows off is still set where the
+  document asked, and now says it is growing out of the band. Nothing warned
+  about that before, which is how six versions of the Ring shipped with its
+  bottom word outside the ring.
+
 ### Changed
 
 - **Nothing here pins a version of ours.** The gemspec asked for

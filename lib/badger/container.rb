@@ -90,9 +90,9 @@ module Badger
 
     # Attach a child already expressed in this container's space, such as
     # type following one of this container's own regions.
-    def attach(child, name: nil, slot: :ink, address: nil, construction: nil)
+    def attach(child, name: nil, slot: :ink, address: nil, construction: nil, notes: nil)
       add_node Node.new(child, Geometry::Affine.identity, name: name, slot: slot, address: address,
-                        construction: construction)
+                        construction: construction, notes: notes)
     end
 
     def children = nodes.map(&:child)
@@ -160,7 +160,7 @@ module Badger
         when Follow
           out << follow_construction(node, world, center)
         else
-          entry = { kind: node.kind.to_s, address: node.address, name: node.name }
+          entry = { kind: node.kind.to_s, address: node.address, name: node.name, notes: node.notes }
           entry[:anchor] = world.apply(node.anchor).then { |p| { x: p.x, y: p.y } } if node.anchor
           (node.construction || {}).each { |key, path| entry[key] = path.transform(world).to_d }
           out << entry
@@ -187,7 +187,8 @@ module Badger
                  to: { x: sweep_to.x, y: sweep_to.y, degrees: degrees.(sweep_to) } },
         run: { from: { x: run_from.x, y: run_from.y }, to: { x: run_to.x, y: run_to.y } },
         letters: follow.placements.map { |pl| world.apply(pl.point).then { |p| { x: p.x, y: p.y } } },
-        tracking: follow.tracking, align: follow.align.to_s, fits: follow.fits?, overflow: follow.overflow }
+        tracking: follow.tracking, align: follow.align.to_s, fits: follow.fits?, overflow: follow.overflow,
+        notes: node.notes }
     end
 
     public

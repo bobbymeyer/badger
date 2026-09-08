@@ -111,6 +111,53 @@ class SpecTest < Minitest::Test
     assert medallion
   end
 
+  # A run's ink rises from its baseline along its own normal, and that normal
+  # turns with the run's direction: over the top it points out of the badge,
+  # under the bottom it points into it, and `reversed` flips both. So which
+  # edge of the band the baseline belongs on is not a constant — it used to
+  # default to the inner edge for every sweep, which set half of them outside
+  # the band they name, silently.
+  def ring_document(line)
+    YAML.safe_load(<<~YAML)
+      name: probe
+      shape: { kind: circle, radius: 200 }
+      regions: [ { kind: band, name: ring, outer: -10, width: 64, visible: false } ]
+      type:
+        - { mode: follow, text: HIH, font: badger-test, region: ring, inset: 12, name: run, align: justify, #{line} }
+    YAML
+  end
+
+  # How far the run's ink is from the centre, against the band it names.
+  def run_radii(document)
+    output = Badger.render(Badger::Spec.build(document))
+    piece = output.pieces.find { |p| p.name == "run" }
+    points = piece.path.spines.flat_map { |s| s.flatten(0.5) }
+    radii = points.map { |p| Math.sqrt((p.x**2) + (p.y**2)) }
+    [radii.min, radii.max, output.warnings]
+  end
+
+  def test_a_run_sits_in_the_band_it_names_whichever_way_it_is_swept
+    [ "sweep: top", "sweep: top, reversed: true",
+      "sweep: bottom", "sweep: bottom, reversed: true",
+      "sweep: { from: 160, to: 20 }, reversed: true" ].each do |line|
+      low, high, warnings = run_radii(ring_document(line))
+      assert_operator low, :>=, 126 - 1, "#{line} sets ink inside the band's inner edge"
+      assert_operator high, :<=, 190 + 1, "#{line} sets ink outside the band's outer edge"
+      assert_empty warnings, "#{line} warns: #{warnings.inspect}"
+    end
+  end
+
+  def test_an_edge_asked_for_is_obeyed_and_said_out_loud_when_the_type_grows_off_it
+    low, high, warnings = run_radii(ring_document("sweep: bottom, reversed: true, from: outer"))
+    assert_operator high, :>, 190, "the edge asked for is still obeyed"
+    assert_equal 1, warnings.size
+    assert_match(/grows out of the band/, warnings.first[:message])
+    assert_equal "type[0]", warnings.first[:address]
+
+    _low, _high, quiet = run_radii(ring_document("sweep: bottom, from: outer"))
+    assert_empty quiet, "an edge that agrees with the run says nothing"
+  end
+
   def test_follow_fits_the_band_by_default_and_sweeps_the_top
     container = Badger::Spec.build(stockholm)
     follow = container.nodes.first.child

@@ -71,7 +71,7 @@ badge.rule(-56, weight: 2)                                # visible inner rule
 field = badge.interior(inside: -57, visible: true)
 
 band.baseline(7)                                          # spine 7 units in from the inner edge
-band.baseline(7, from: :outer)                            # for reversed type along the bottom
+band.baseline(7, from: :outer)                            # 7 units in from the outer edge
 field.chord_at_y(y)                                       # [x0, x1] horizontal chord: fit-to-width-at-y
 field.chord_at_x(x)                                       # [y0, y1] vertical chord: fit-to-height-at-x
 field.centroid
@@ -187,12 +187,12 @@ regions:
   - { kind: interior, name: field, inside: -52 }
 type:
   - { mode: follow, text: STOCKHOLM STADION, font: Archivo, region: ring, inset: 7, sweep: top, align: justify }
-  - { mode: follow, text: "1912", font: Archivo, region: ring, from: outer, inset: 7, sweep: bottom, tracking: 12 }
+  - { mode: follow, text: "1912", font: Archivo, region: ring, inset: 7, sweep: bottom, tracking: 12 }
   - { mode: fit, text: OLYMPIA, font: Archivo, region: field, fit: chord_at_y, at: 0, inset: 24, edge: narrowest }
   - { mode: fixed, text: EST., font: Archivo, size: 14, at: { polar: { angle: 180, radius: 150 } }, align: left }
 ```
 
-Fonts are named, not pathed: `Badger::Fonts.add_directory(dir)` scans for TrueType, OpenType and woff2 files and a document says `font: Archivo-Bold`. `sweep: top` and `sweep: bottom` find the run from the leftmost to the rightmost point by way of that side on any closed spine, reading left to right.
+Fonts are named, not pathed: `Badger::Fonts.add_directory(dir)` scans for TrueType, OpenType and woff2 files and a document says `font: Archivo-Bold`. `sweep: top` and `sweep: bottom` find the run from the leftmost to the rightmost point by way of that side on any closed spine, reading left to right. A run's ink rises from its baseline along its own normal, and that normal turns with the run's direction, so which edge of the band the baseline sits on is not a constant: it is read off the run, and the baseline goes on the edge the ink grows away from. Say `from: inner` or `from: outer` to overrule that and let the type hang out of the band — the document is obeyed, and `Output#warnings` says the type is growing off the edge it was given.
 
 **The engine** lives in `engine/` as a second gem, `badger-rails`, packaged the way Pandatone and Stripeclub are: its own controllers, routes, views, migrations and stylesheets under the `Badger` namespace and the `badger_` table prefix, inheriting the host's door and shell. It stores badges as documents, renders them in value, dresses them in a Pandatone palette as a colorway (a snapshot plus a rule per slot, drift reported and never applied), and serves a read-only JSON API described at `api/v1/openapi`. The Ruby interface is `Badger.badges`, `Badger.badge(key)`, `Badger.badge_svg(key, colorway:)`, `Badger.colorways`, `Badger.colorway(id)`.
 

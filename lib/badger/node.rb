@@ -5,7 +5,7 @@ module Badger
   # its local coordinates into the parent's. Children are containers, type
   # (a Setting or a Follow) or, later, illustration.
   class Node
-    attr_reader :child, :affine, :name, :slot, :address, :anchor, :construction
+    attr_reader :child, :affine, :name, :slot, :address, :anchor, :construction, :notes
 
     # address:      where in a document this child was written
     # anchor:       the point in the parent's space a placed child was put
@@ -13,7 +13,10 @@ module Badger
     # construction: geometry in the parent's space an editor should draw
     #               with the child — a chord it was fitted to, say — as a
     #               hash of named path data strings
-    def initialize(child, affine, name: nil, slot: :ink, address: nil, anchor: nil, construction: nil)
+    # notes:        what was noticed about this child while it was built and
+    #               is worth saying without failing, as sentences; they come
+    #               out of Output#warnings against this address
+    def initialize(child, affine, name: nil, slot: :ink, address: nil, anchor: nil, construction: nil, notes: nil)
       @child = child
       @affine = affine
       @name = name
@@ -21,6 +24,7 @@ module Badger
       @address = address
       @anchor = anchor
       @construction = construction
+      @notes = Array(notes)
     end
 
     def kind
