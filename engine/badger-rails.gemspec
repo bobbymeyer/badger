@@ -31,10 +31,15 @@ Gem::Specification.new do |spec|
   spec.add_dependency "rails", ">= 8.0", "< 9"
   # The typographic style every screen is set in, declared here rather than
   # taken from the host on faith.
-  spec.add_dependency "its-swiss", "~> 1.0"
+  # A floor, not a range: these were written against the 1.0 API, and a new
+  # major should arrive with everything else rather than wait on a gemspec
+  # being edited by hand.
+  spec.add_dependency "its-swiss", ">= 1.0"
   # The palettes a badge is dressed in come from Pandatone, and so does the
   # dresser that asks for them and holds the answer.
-  spec.add_dependency "pandatone", ">= 0.4"
+  # No version: Pandatone is taken from its main branch, so a requirement
+  # here constrains nothing and is one more number to keep in step.
+  spec.add_dependency "pandatone"
   spec.add_dependency "propshaft", ">= 1.0", "< 3"
   spec.add_dependency "importmap-rails", ">= 2.0", "< 4"
   spec.add_dependency "turbo-rails", ">= 2.0", "< 3"
