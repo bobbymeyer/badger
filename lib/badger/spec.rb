@@ -15,7 +15,7 @@ module Badger
   #   type:
   #     - { mode: follow, text: STOCKHOLM STADION, font: Archivo-Bold, region: ring,
   #         inset: 7, sweep: top, align: justify }
-  #     - { mode: follow, text: "1912", font: Archivo-Bold, region: ring, from: outer,
+  #     - { mode: follow, text: "1912", font: Archivo-Bold, region: ring,
   #         inset: 7, sweep: bottom, align: center, tracking: 10 }
   #     - { mode: fit, text: S, font: Archivo-Bold, region: field, fit: chord_at_x, at: 0, inset: 8 }
   #     - { mode: fixed, text: EST. 1912, font: Archivo, size: 15,
@@ -193,7 +193,7 @@ module Badger
     def build_follow(container, regions, doc, where)
       band = band_named(regions, doc, where)
       inset = number(doc, "inset", where, 0.0)
-      from = one_of(doc, "from", where, %w[inner outer], "inner").to_sym
+      asked = doc.key?("from") ? one_of(doc, "from", where, %w[inner outer]).to_sym : nil
       size = number(doc, "size", where, nil)
       run = if size
               shape_text(doc, where, size)
@@ -202,11 +202,41 @@ module Badger
               Fit.new(policy: policy, max_size: number(doc, "max_size", where, nil))
                  .to_band(shape_text(doc, where, 100), band, inset: number(doc, "band_inset", where, inset)).run
             end
-      baseline = band.baseline(inset, from: from)
+
+      # Which edge the baseline sits on decides which way the type grows off
+      # it, because a run's ink rises along its own normal — and that normal
+      # turns with the run's direction. Read it off the run and put the
+      # baseline on the edge the ink grows away from; the band then holds it.
+      baseline = band.baseline(inset, from: asked || :inner)
       spine, start, length = sweep_of(baseline, doc, where)
+      wants = edge_the_ink_grows_from(spine, start, length)
+      if asked.nil? && wants != :inner
+        baseline = band.baseline(inset, from: wants)
+        spine, start, length = sweep_of(baseline, doc, where)
+      end
+
       align = one_of(doc, "align", where, Follow::ALIGNMENTS.map(&:to_s), "center").to_sym
       follow = Follow.new(spine, run, tracking: number(doc, "tracking", where, 0.0), start: start, sweep: length, align: align)
-      container.attach(follow, name: doc["name"] || run.text, slot: slot_of(doc, where, :ink), address: address(where))
+      container.attach(follow, name: doc["name"] || run.text, slot: slot_of(doc, where, :ink), address: address(where),
+                       notes: outside_band_note(asked, wants, doc))
+    end
+
+    # A run's ink rises from its baseline along the normal. When that normal
+    # points away from the centre the type fills outward and the baseline
+    # belongs on the band's inner edge; when it points inward, the outer.
+    def edge_the_ink_grows_from(spine, start, length)
+      at = spine.at((start + length / 2.0) % spine.length)
+      centre = @current.centroid
+      outward = at.normal.x * (at.point.x - centre.x) + at.normal.y * (at.point.y - centre.y)
+      outward.positive? ? :inner : :outer
+    end
+
+    def outside_band_note(asked, wants, doc)
+      return nil if asked.nil? || asked == wants
+
+      ["Set from the #{asked} edge, this run's type grows out of the band rather than into it: " \
+       "#{doc["sweep"].is_a?(String) ? "a #{doc["sweep"]} sweep" : "this sweep"}#{doc["reversed"] ? ", reversed," : ""} " \
+       "rises from the #{wants} edge. Drop `from:` to let it sit in the band."]
     end
 
     def sweep_of(baseline, doc, where)
