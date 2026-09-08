@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+### Changed
+
+- **Nothing here pins a version of ours.** The gemspec asked for
+  `pandatone >= 0.4` and `its-swiss ~> 1.0`; both had to be edited by hand
+  when the other side moved, and neither could ever have been violated —
+  Pandatone is taken from its main branch, and we are its only consumer.
+  Pandatone carries no version requirement now, and its-swiss carries a floor
+  with no ceiling, so a new major arrives with everything else. `badger` stays
+  pinned to `Badger::VERSION`: the engine calls the core's internals, they
+  ship from one repository, and the constraint writes itself.
+
+- **The start's cards are cached under the document, not the version.** A
+  composition redrawn without a version bump went on being served from the
+  old card in any host with a real cache store — which is what happened to
+  the six compositions this release redraws.
+
 ### Fixed
 
 - **A composition's bottom arc is set inside its band again.** Ring and

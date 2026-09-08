@@ -20,12 +20,16 @@ module Badger
     end
 
     # A composition, drawn: the core's own render of the document choosing
-    # it gives, in value, so the card never drifts from the badge. Rendered
-    # once per font and version and kept in the host's cache; the sidecar
-    # is not asked six times for every visit to the start.
+    # it gives, in value, so the card never drifts from the badge. Kept in
+    # the host's cache so the sidecar is not asked six times for every visit
+    # to the start, under a key made from the document itself: a composition
+    # that is redrawn is a new key, whether or not the version moved. Keying
+    # on the version meant a host went on serving the old card until someone
+    # bumped it, which is the drift this render exists to avoid.
     def composition_preview(composition, font:)
-      svg = Rails.cache.fetch([ "badger", Badger::VERSION, "composition", composition.key, font ]) do
-        Badge.new(name: composition.name, spec: Compositions.document(composition.key, font: font)).svg(padding: 12)
+      document = Compositions.document(composition.key, font: font)
+      svg = Rails.cache.fetch([ "badger", "composition", composition.key, font, Digest::SHA256.hexdigest(document.to_s) ]) do
+        Badge.new(name: composition.name, spec: document).svg(padding: 12)
       end
       svg.html_safe # rubocop:disable Rails/OutputSafety -- the core's own SVG
     rescue Badger::Error => e
