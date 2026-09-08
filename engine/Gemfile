@@ -7,9 +7,14 @@ gemspec
 # The core, from the same repository.
 gem "badger", path: ".."
 
-# Pandatone is not published to RubyGems; the engine takes it from its tag,
-# the way a host does. its-swiss comes from RubyGems through the gemspec.
-gem "pandatone", github: "bobbymeyer/pandatone", branch: "swiss-1"
+# Pandatone is not published to RubyGems; the engine takes it from the
+# default branch of its repository rather than from a tag. A tag cannot
+# exist until the change that needs it has merged, and this Gemfile is only
+# what the dummy under test/ runs on — what a host resolves is the gemspec,
+# which asks for a version. Running the suite against Pandatone's tip is the
+# point: a break between the two shows up here rather than in a host.
+# its-swiss comes from RubyGems through the gemspec.
+gem "pandatone", github: "bobbymeyer/pandatone"
 
 # json 3.0.0 (7 September 2026) changed the signature of JSON.parse, and Active
 # Support 8.1.3.1 still calls it the old way: a signed cookie, a JSON column, a
