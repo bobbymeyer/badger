@@ -76,9 +76,20 @@ module Badger
           - { kind: rule, name: inner, distance: -76, weight: 2 }
           - { kind: interior, name: field, inside: -80 }
         type:
-          - { mode: follow, text: YOUR TOWN, font: #{font}, region: ring, inset: 12, sweep: top, align: justify, name: top }
-          - { mode: follow, text: SINCE 1912, font: #{font}, region: ring, from: outer, inset: 12, reversed: true, sweep: bottom, align: justify, name: bottom }
-          - { mode: fit, fit: chord_at_y, text: "19  12", font: #{font}, region: field, at: 0, fill: 0.9, height: 60, stretch: { min: 0.6, max: 1.4 }, name: pair }
+          - { mode: follow, text: YOUR TOWN, font: #{font}, region: ring, inset: 12,
+              sweep: { from: 202, to: 338 }, align: justify, name: top }
+          - { mode: follow, text: SINCE, font: #{font}, region: ring, from: outer, inset: 12,
+              reversed: true, sweep: { from: 138, to: 42 }, align: justify, name: bottom }
+        children:
+          - name: setting line
+            shape: { kind: rectangle, width: 400, height: 1 }
+            visible: false
+            at: centroid
+            type:
+              - { mode: fit, fit: box, height: 38, axes: height, text: "19", font: #{font},
+                  at: { axial: [0.105, 0.5] }, align: center, name: "19" }
+              - { mode: fit, fit: box, height: 38, axes: height, text: "12", font: #{font},
+                  at: { axial: [0.895, 0.5] }, align: center, name: "12" }
       YAML
     end
 
@@ -91,8 +102,10 @@ module Badger
           - { kind: rule, name: inner, distance: -68, weight: 2 }
           - { kind: interior, name: field, inside: -72 }
         type:
-          - { mode: follow, text: MEDALLION, font: #{font}, region: ring, inset: 10, sweep: top, align: justify, name: top }
-          - { mode: follow, text: SINCE 1912, font: #{font}, region: ring, from: outer, inset: 10, reversed: true, sweep: bottom, align: justify, name: bottom }
+          - { mode: follow, text: MEDALLION, font: #{font}, region: ring, inset: 10,
+              sweep: { from: 205, to: 335 }, align: justify, name: top }
+          - { mode: follow, text: SINCE 1912, font: #{font}, region: ring, from: outer, inset: 10,
+              reversed: true, sweep: { from: 155, to: 25 }, align: justify, name: bottom }
         children:
           - name: mark
             shape: { kind: circle, radius: 110 }
@@ -101,19 +114,19 @@ module Badger
             regions:
               - { kind: interior, name: field, inside: 0 }
             type:
-              - { mode: fit, fit: chord_at_x, text: M, font: #{font}, region: field, at: 0, inset: 20, name: letter }
+              - { mode: fit, fit: chord_at_x, text: M, font: #{font}, region: field, at: 0, inset: 20, fill: 0.62, name: letter }
       YAML
     end
 
     def stack(font:)
-      lines = [ [ "THE", -190, 40, 0.6 ], [ "TALL", -90, 96, 0.6 ], [ "ONE", 30, 96, 0.6 ], [ "1912", 170, 40, 0.6 ] ]
+      lines = [ [ "THE", -182, 32 ], [ "TALL", -92, 80 ], [ "ONE", 30, 80 ], [ "1912", 154, 32 ] ]
       <<~YAML
         name: Lozenge stack
         regions:
           - { kind: rule, name: edge, distance: 0, weight: 4 }
           - { kind: interior, name: field, inside: -16 }
         type:
-        #{lines.map { |text, y, height, min| "  - { mode: fit, fit: chord_at_y, text: \"#{text}\", font: #{font}, region: field, at: #{y}, height: #{height}, fill: 0.6, stretch: { min: #{min}, max: 2.2 }, name: \"#{text}\" }" }.join("\n")}
+        #{lines.map { |text, y, height| "  - { mode: fit, fit: chord_at_y, text: \"#{text}\", font: #{font}, region: field, at: #{y}, height: #{height}, fill: 0.82, stretch: { min: 0.7, max: 1.15 }, name: \"#{text}\" }" }.join("\n")}
       YAML
     end
 
@@ -135,11 +148,11 @@ module Badger
         name: Shield band
         regions:
           - { kind: rule, name: edge, distance: 0, weight: 5 }
-          - { kind: rule, name: inner, distance: -14, weight: 2 }
-          - { kind: interior, name: field, inside: -18 }
+          - { kind: rule, name: inner, distance: -22, weight: 2 }
+          - { kind: interior, name: field, inside: -26 }
         type:
-          - { mode: fit, fit: chord_at_y, text: SHIELD, font: #{font}, region: field, at: -150, height: 60, fill: 0.8, stretch: { min: 0.7, max: 1.3 }, name: top }
-          - { mode: fit, fit: chord_at_y, text: S, font: #{font}, region: field, at: 40, height: 200, fill: 0.5, stretch: { min: 0.8, max: 1.2 }, name: letter }
+          - { mode: fit, fit: chord_at_y, text: SHIELD, font: #{font}, region: field, at: -138, height: 54, fill: 0.74, stretch: { min: 0.75, max: 1.15 }, name: top }
+          - { mode: fit, fit: chord_at_y, text: S, font: #{font}, region: field, at: 50, height: 158, fill: 0.5, stretch: { min: 0.85, max: 1.15 }, name: letter }
       YAML
     end
 
@@ -151,9 +164,9 @@ module Badger
           - { kind: rule, name: inner, distance: -14, weight: 2 }
           - { kind: interior, name: field, inside: -24 }
         type:
-          - { mode: fit, fit: chord_at_y, text: THE, font: #{font}, region: field, at: -80, height: 36, fill: 0.3, stretch: { min: 0.6, max: 1.4 }, name: line1 }
-          - { mode: fit, fit: chord_at_y, text: PLATE, font: #{font}, region: field, at: 10, height: 110, fill: 0.8, stretch: { min: 0.6, max: 1.6 }, name: line2 }
-          - { mode: fit, fit: chord_at_y, text: EST 1912, font: #{font}, region: field, at: 100, height: 30, fill: 0.4, stretch: { min: 0.6, max: 1.4 }, name: line3 }
+          - { mode: fit, fit: chord_at_y, text: THE, font: #{font}, region: field, at: -84, height: 34, fill: 0.3, stretch: { min: 0.6, max: 1.4 }, name: line1 }
+          - { mode: fit, fit: chord_at_y, text: PLATE, font: #{font}, region: field, at: 6, height: 108, fill: 0.72, stretch: { min: 0.7, max: 1.25 }, name: line2 }
+          - { mode: fit, fit: chord_at_y, text: EST 1912, font: #{font}, region: field, at: 96, height: 28, fill: 0.4, stretch: { min: 0.6, max: 1.4 }, name: line3 }
       YAML
     end
   end

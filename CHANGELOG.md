@@ -2,7 +2,29 @@
 
 ## Unreleased
 
+### Fixed
+
+- **A composition's bottom arc is set inside its band again.** Ring and
+  Medallion asked for `sweep: bottom` with `reversed: true`, which is not the
+  form the Stockholm reference uses and does not survive the round trip: the
+  named half already carries its own direction, so reversing it a second time
+  turned the glyphs' up-direction outward and the type was set outside the
+  ring, straddling the edge. Both now name the angles they sweep between, as
+  the reference does. Nothing warned about this, on any shape.
+
 ### Changed
+
+- **The compositions are drawn as their references draw them.** The arcs stop
+  short of the sides, so the two words no longer collide at three and nine
+  o'clock, and the Ring's pair — 19 and 12, which the note has always
+  promised and which were a double space in the middle of the field — sit in
+  the gaps the arcs leave, on a setting line, the way Stockholm Stadion sets
+  them. The Medallion's letter has air around it instead of touching the
+  inner rule. The Lozenge stack's lines were being clamped to six tenths of
+  their width, each by a different amount; they are set at a rate that fits
+  the chord they are on. The Shield's two lines leave each other room and its
+  inner rule is far enough in to read as a band. The Plate's word is off the
+  rule. Wide word is unchanged.
 
 - **Pandatone comes from its default branch, not a tag.** A tag cannot exist
   until the change that needs it has merged, so every cross-repo move cost a

@@ -14,13 +14,33 @@ module Badger
       end
     end
 
+    # A composition that sets its type outside its own outline draws happily
+    # and warns about nothing: the ring set its bottom word on the far side
+    # of the band's edge for six versions. Ink belongs inside the shape, less
+    # the half of a rule that sits outside the outline it is drawn on.
+    test "every composition keeps its ink inside its own outline" do
+      Compositions.all.each do |composition|
+        document = Compositions.document(composition.key, font: FONT)
+        container = Badger::Spec.build(document)
+        low, high = Badger.render(container).ink_bounds
+        shape_low, shape_high = container.bounds
+        slack = 6
+
+        assert_operator low.x, :>=, shape_low.x - slack, "#{composition.name} sets ink off the left of its outline"
+        assert_operator low.y, :>=, shape_low.y - slack, "#{composition.name} sets ink off the top of its outline"
+        assert_operator high.x, :<=, shape_high.x + slack, "#{composition.name} sets ink off the right of its outline"
+        assert_operator high.y, :<=, shape_high.y + slack, "#{composition.name} sets ink off the bottom of its outline"
+      end
+    end
+
     test "a composition takes any shape at its own frame" do
       Compositions::SHAPES.each_key do |kind|
         next if kind == "path"
 
         document = Compositions.document("ring", font: FONT, shape: kind)
         assert_equal kind, document.dig("shape", "kind")
-        assert_nothing_raised { Badge.new(name: "Ring", spec: document).output }
+        output = Badge.new(name: "Ring", spec: document).output
+        assert_empty output.warnings, "the ring on a #{kind} warns: #{output.warnings.inspect}"
       end
       document = Compositions.document("ring", font: FONT, shape: "path", path: "M -200 -240 L 200 -240 L 200 240 L -200 240 Z")
       assert_equal "path", document.dig("shape", "kind")
