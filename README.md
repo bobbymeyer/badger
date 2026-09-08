@@ -200,7 +200,19 @@ Fonts are named, not pathed: `Badger::Fonts.add_directory(dir)` scans for TrueTy
 
 **A badge starts from a composition**, not a blank document: Ring, Medallion, Lozenge stack, Wide word, Shield band or Plate, each a document `Badger::Compositions` holds and the core renders for its card, on any of the shapes. Composed, it opens in the editor on its first run. A document brought from elsewhere is pasted instead.
 
-A host takes both gems from one tag, sets `Badger.font_directories` in an initializer, mounts `Badger::Engine`, and installs `requirements.txt` into its Python. Palettes come through Pandatone's own dresser: the Pandatone in the same process, or the one at `PANDATONE_URL`. `bin/rails badger:doctor` says whether the sidecar can run; `bin/rails badger:seed` plants Stockholm, Giletti and Le Dive.
+A host takes both gems from one git block on the main branch, sets `Badger.font_directories` in an initializer, mounts `Badger::Engine`, and installs `requirements.txt` into its Python.
+
+```ruby
+# Gemfile — not on RubyGems; the core and the engine come from one block
+git "https://github.com/bobbymeyer/badger", branch: "main" do
+  gem "badger"
+  gem "badger-rails"
+end
+```
+
+The engine depends on the core at exactly its own version, so one block keeps the two in step. No tag: a tag cannot exist until the change that needs it has merged, so pinning one costs a re-pin on every move; the host's `Gemfile.lock` records the revision Bundler resolved, and that is what pins a deploy. `bundle update badger badger-rails` moves it, and the lock's diff is the record of when. Name the branch rather than leaving the ref off: with no ref, Bundler resolves whatever the cached clone's HEAD happens to be. Releases are still numbered in `CHANGELOG.md`, and the gemspecs' constraints are what a host resolves against.
+
+Palettes come through Pandatone's own dresser: the Pandatone in the same process, or the one at `PANDATONE_URL`. `bin/rails badger:doctor` says whether the sidecar can run; `bin/rails badger:seed` plants Stockholm, Giletti and Le Dive.
 
 ```sh
 cd engine && bundle install && bin/rails test   # the engine's suite, against the dummy host under test/
